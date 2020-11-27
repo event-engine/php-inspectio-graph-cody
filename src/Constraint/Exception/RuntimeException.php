@@ -10,6 +10,6 @@ declare(strict_types=1);
 
 namespace EventEngine\InspectioGraphCody\Constraint\Exception;
 
-class RuntimeException extends \EventEngine\InspectioGraph\Exception\RuntimeException implements ConstraintException
+class RuntimeException extends \EventEngine\InspectioGraphCody\Exception\RuntimeException implements ConstraintException
 {
 }
