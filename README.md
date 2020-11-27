@@ -1,9 +1,9 @@
-# Event Engine - PHP InspectIO Graph
+# Event Engine - PHP InspectIO Graph Cody
 
-PHP graph for InspectIO.
+PHP graph Cody for InspectIO.
 
 ## Installation
 
 ```bash
-$ composer require event-engine/php-inspectio-graph
+$ composer require event-engine/php-inspectio-graph-cody
 ```

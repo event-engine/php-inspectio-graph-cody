@@ -1,6 +1,6 @@
 {
-    "name": "event-engine/php-inspectio-graph",
-    "description": "PHP Graph for InspectIO",
+    "name": "event-engine/php-inspectio-graph-cody",
+    "description": "PHP Graph Cody for InspectIO",
     "license": "MIT",
     "type": "library",
     "authors": [
@@ -16,29 +16,22 @@
         }
     ],
     "support": {
-        "issues": "https://github.com/event-engine/php-inspectio-graph/issues",
-        "source": "https://github.com/event-engine/php-inspectio-graph"
+        "issues": "https://github.com/event-engine/php-inspectio-graph-cody/issues",
+        "source": "https://github.com/event-engine/php-inspectio-graph-cody"
     },
     "autoload": {
         "psr-4": {
-            "EventEngine\\InspectioGraph\\": "src/"
+            "EventEngine\\InspectioGraphCody\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "EventEngineTest\\InspectioGraph\\": "tests/"
+            "EventEngineTest\\InspectioGraphCody\\": "tests/"
         }
     },
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/sandrokeil/graphml"
-        }
-    ],
     "require": {
         "php": "^7.3 || ^8.0",
-        "graphp/graph": "^0.9.1",
-        "graphp/graphml": "dev-feature/use-graphp-package",
+        "event-engine/php-inspectio-graph": "^0.2.0",
         "ext-json": "*"
     },
     "require-dev": {
@@ -61,10 +54,9 @@
     "scripts": {
         "check": [
             "@cs",
-            "@docheader",
-            "@test"
+            "@test",
+            "@analyse"
         ],
-        "docheader": "vendor/bin/docheader check src/ tests/",
         "cs": "php-cs-fixer fix src -v --diff --dry-run",
         "cs-fix": "php-cs-fixer fix src -v --diff",
         "test": "vendor/bin/phpunit",

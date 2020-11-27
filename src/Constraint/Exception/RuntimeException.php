@@ -8,10 +8,8 @@
 
 declare(strict_types=1);
 
-namespace EventEngine\InspectioGraphCody\Exception;
+namespace EventEngine\InspectioGraphCody\Constraint\Exception;
 
-use RuntimeException as BaseRuntimeException;
-
-class RuntimeException extends BaseRuntimeException implements InspectioGraphCodyException
+class RuntimeException extends \EventEngine\InspectioGraph\Exception\RuntimeException implements ConstraintException
 {
 }

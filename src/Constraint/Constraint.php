@@ -8,10 +8,11 @@
 
 declare(strict_types=1);
 
-namespace EventEngine\InspectioGraphCody\Exception;
+namespace EventEngine\InspectioGraphCody\Constraint;
 
-use RuntimeException as BaseRuntimeException;
+use EventEngine\InspectioGraphCody\Node;
 
-class RuntimeException extends BaseRuntimeException implements InspectioGraphCodyException
+interface Constraint
 {
+    public function __invoke(Node $vertex): void;
 }
