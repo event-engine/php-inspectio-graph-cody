@@ -10,9 +10,9 @@ declare(strict_types=1);
 
 namespace EventEngine\InspectioGraphCody;
 
-use EventEngine\InspectioGraph\Exception\RuntimeException;
 use EventEngine\InspectioGraph\Metadata\Metadata;
 use EventEngine\InspectioGraph\VertexType;
+use EventEngine\InspectioGraphCody\Exception\RuntimeException;
 
 abstract class Vertex implements VertexType
 {

@@ -12,9 +12,9 @@ namespace EventEngine\InspectioGraphCody;
 
 use EventEngine\InspectioGraph\AggregateConnection;
 use EventEngine\InspectioGraph\AggregateConnectionMap;
-use EventEngine\InspectioGraph\Exception\RuntimeException;
 use EventEngine\InspectioGraph\VertexMap;
 use EventEngine\InspectioGraph\VertexType;
+use EventEngine\InspectioGraphCody\Exception\RuntimeException;
 
 final class EventSourcingAnalyzer implements \EventEngine\InspectioGraph\EventSourcingAnalyzer
 {
