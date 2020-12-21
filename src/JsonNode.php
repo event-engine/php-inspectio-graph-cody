@@ -75,8 +75,8 @@ final class JsonNode implements Node
     {
         $nodes = [];
 
-        if (! empty($this->node['children'])) {
-            foreach ($this->node['children'] as $child) {
+        if (! empty($this->node['childrenList'])) {
+            foreach ($this->node['childrenList'] as $child) {
                 $nodes[] = new self($child);
             }
         }
