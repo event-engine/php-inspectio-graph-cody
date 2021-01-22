@@ -12,6 +12,9 @@ namespace EventEngine\InspectioGraphCody\Metadata;
 
 use EventEngine\InspectioGraph\Metadata\AggregateMetadata;
 
+/**
+ * @deprecated Will be removed
+ */
 final class Aggregate implements AggregateMetadata
 {
     /**

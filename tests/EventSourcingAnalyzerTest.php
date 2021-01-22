@@ -1,5 +1,11 @@
 <?php
 
+/**
+ * @see       https://github.com/event-engine/php-inspectio-graph-cody for the canonical source repository
+ * @copyright https://github.com/event-engine/php-inspectio-graph-cody/blob/master/COPYRIGHT.md
+ * @license   https://github.com/event-engine/php-inspectio-graph-cody/blob/master/LICENSE.md MIT License
+ */
+
 declare(strict_types=1);
 
 namespace EventEngineTest\InspectioGraphCody;
@@ -20,8 +26,8 @@ final class EventSourcingAnalyzerTest extends TestCase
      */
     public function it_returns_command_map_of_command_node(): void
     {
-        $node = JsonNode::fromJson(file_get_contents(self::FILES_DIR . 'add_building.json'));
-        $filter = static function(string $value) {
+        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'add_building.json'));
+        $filter = static function (string $value) {
             return $value;
         };
 
@@ -39,8 +45,8 @@ final class EventSourcingAnalyzerTest extends TestCase
      */
     public function it_returns_event_map_of_command_node(): void
     {
-        $node = JsonNode::fromJson(file_get_contents(self::FILES_DIR . 'add_building.json'));
-        $filter = static function(string $value) {
+        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'add_building.json'));
+        $filter = static function (string $value) {
             return $value;
         };
 
@@ -58,8 +64,8 @@ final class EventSourcingAnalyzerTest extends TestCase
      */
     public function it_returns_aggregate_map_of_command_node(): void
     {
-        $node = JsonNode::fromJson(file_get_contents(self::FILES_DIR . 'add_building.json'));
-        $filter = static function(string $value) {
+        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'add_building.json'));
+        $filter = static function (string $value) {
             return $value;
         };
 
@@ -84,8 +90,8 @@ final class EventSourcingAnalyzerTest extends TestCase
      */
     public function it_returns_command_map_of_aggregate_node(): void
     {
-        $node = JsonNode::fromJson(file_get_contents(self::FILES_DIR . 'building_check_in_user.json'));
-        $filter = static function(string $value) {
+        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'building_check_in_user.json'));
+        $filter = static function (string $value) {
             return $value;
         };
 
@@ -103,8 +109,8 @@ final class EventSourcingAnalyzerTest extends TestCase
      */
     public function it_returns_event_map_of_aggregate_node(): void
     {
-        $node = JsonNode::fromJson(file_get_contents(self::FILES_DIR . 'building_check_in_user.json'));
-        $filter = static function(string $value) {
+        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'building_check_in_user.json'));
+        $filter = static function (string $value) {
             return $value;
         };
 
@@ -125,8 +131,8 @@ final class EventSourcingAnalyzerTest extends TestCase
      */
     public function it_returns_aggregate_map_of_aggregate_node(): void
     {
-        $node = JsonNode::fromJson(file_get_contents(self::FILES_DIR . 'building_check_in_user.json'));
-        $filter = static function(string $value) {
+        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'building_check_in_user.json'));
+        $filter = static function (string $value) {
             return $value;
         };
 

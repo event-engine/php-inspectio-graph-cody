@@ -12,6 +12,9 @@ namespace EventEngine\InspectioGraphCody\Metadata;
 
 use EventEngine\InspectioGraph\Metadata\CommandMetadata;
 
+/**
+ * @deprecated Will be removed
+ */
 final class Command implements CommandMetadata
 {
     /**

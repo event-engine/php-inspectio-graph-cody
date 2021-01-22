@@ -15,6 +15,9 @@ use EventEngine\InspectioGraph\VertexType;
 use EventEngine\InspectioGraphCody\Exception\RuntimeException;
 use EventEngine\InspectioGraphCody\Node;
 
+/**
+ * @deprecated Will be removed
+ */
 final class NodeJsonMetadataFactory
 {
     public function __invoke(Node $vertex, callable $filterName): Metadata

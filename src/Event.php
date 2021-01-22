@@ -18,11 +18,11 @@ final class Event extends Vertex implements EventType
     protected const TYPE = self::TYPE_EVENT;
 
     /**
-     * @var Metadata\EventMetadata|null
+     * @var Metadata\Metadata|null
      */
     protected $metadataInstance;
 
-    public function metadataInstance(): ?Metadata\EventMetadata
+    public function metadataInstance(): ?Metadata\Metadata
     {
         return $this->metadataInstance;
     }

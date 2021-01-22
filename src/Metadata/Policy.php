@@ -12,6 +12,9 @@ namespace EventEngine\InspectioGraphCody\Metadata;
 
 use EventEngine\InspectioGraph\Metadata\PolicyMetadata;
 
+/**
+ * @deprecated Will be removed
+ */
 final class Policy implements PolicyMetadata
 {
     /**

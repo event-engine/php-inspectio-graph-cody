@@ -12,6 +12,7 @@ namespace EventEngine\InspectioGraphCody;
 
 use EventEngine\InspectioGraph\AggregateConnection;
 use EventEngine\InspectioGraph\AggregateConnectionMap;
+use EventEngine\InspectioGraph\EventType;
 use EventEngine\InspectioGraph\VertexMap;
 use EventEngine\InspectioGraph\VertexType;
 use EventEngine\InspectioGraphCody\Exception\RuntimeException;
@@ -37,6 +38,11 @@ final class EventSourcingAnalyzer implements \EventEngine\InspectioGraph\EventSo
      * @var VertexMap
      */
     private $eventMap;
+
+    /**
+     * @var VertexMap
+     */
+    private $documentMap;
 
     /**
      * @var AggregateConnectionMap
@@ -136,6 +142,7 @@ final class EventSourcingAnalyzer implements \EventEngine\InspectioGraph\EventSo
                     throw new RuntimeException('Could not find command for aggregate');
                 }
 
+                /** @var EventType[] $events */
                 $events = \array_map(
                     function (Node $vertex) use ($eventMap) {
                         $eventName = ($this->filterName)($vertex->name());
@@ -160,6 +167,15 @@ final class EventSourcingAnalyzer implements \EventEngine\InspectioGraph\EventSo
         }
 
         return $this->aggregateConnectionMap;
+    }
+
+    public function documentMap(): VertexMap
+    {
+        if (null === $this->documentMap) {
+            $this->documentMap = VertexMap::fromVertices(...$this->vertexMapByType(VertexType::TYPE_DOCUMENT));
+        }
+
+        return $this->documentMap;
     }
 
     private function vertexMapByType(string $type): array

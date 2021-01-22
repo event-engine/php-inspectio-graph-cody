@@ -12,6 +12,9 @@ namespace EventEngine\InspectioGraphCody\Metadata;
 
 use EventEngine\InspectioGraph\Metadata\EventMetadata;
 
+/**
+ * @deprecated Will be removed
+ */
 final class Event implements EventMetadata
 {
     /**

@@ -10,12 +10,12 @@ declare(strict_types=1);
 
 namespace EventEngine\InspectioGraphCody;
 
-use EventEngine\InspectioGraph\CommandType;
+use EventEngine\InspectioGraph\EventType;
 use EventEngine\InspectioGraph\Metadata;
 
-final class Command extends Vertex implements CommandType
+final class Document extends Vertex implements EventType
 {
-    protected const TYPE = self::TYPE_COMMAND;
+    protected const TYPE = self::TYPE_DOCUMENT;
 
     /**
      * @var Metadata\Metadata|null

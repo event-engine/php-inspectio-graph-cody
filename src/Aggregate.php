@@ -18,11 +18,11 @@ final class Aggregate extends Vertex implements AggregateType
     protected const TYPE = self::TYPE_AGGREGATE;
 
     /**
-     * @var Metadata\AggregateMetadata|null
+     * @var Metadata\Metadata|null
      */
     protected $metadataInstance;
 
-    public function metadataInstance(): ?Metadata\AggregateMetadata
+    public function metadataInstance(): ?Metadata\Metadata
     {
         return $this->metadataInstance;
     }

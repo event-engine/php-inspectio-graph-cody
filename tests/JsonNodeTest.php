@@ -1,5 +1,11 @@
 <?php
 
+/**
+ * @see       https://github.com/event-engine/php-inspectio-graph-cody for the canonical source repository
+ * @copyright https://github.com/event-engine/php-inspectio-graph-cody/blob/master/COPYRIGHT.md
+ * @license   https://github.com/event-engine/php-inspectio-graph-cody/blob/master/LICENSE.md MIT License
+ */
+
 declare(strict_types=1);
 
 namespace EventEngineTest\InspectioGraphCody;
@@ -17,11 +23,11 @@ final class JsonNodeTest extends TestCase
      */
     public function it_can_be_created_from_json(): void
     {
-        $node = JsonNode::fromJson(file_get_contents(self::FILES_DIR . 'add_building.json'));
+        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'add_building.json'));
 
         $this->assertSame('o67B4pXhbDvuF2BnBsBy27', $node->id());
         $this->assertSame('Building', $node->name());
-        $this->assertSame( 'aggregate', $node->type());
+        $this->assertSame('aggregate', $node->type());
         $this->assertFalse($node->isLayer());
         $this->assertFalse($node->isDefaultLayer());
     }
@@ -31,7 +37,7 @@ final class JsonNodeTest extends TestCase
      */
     public function it_returns_parent_node(): void
     {
-        $node = JsonNode::fromJson(file_get_contents(self::FILES_DIR . 'add_building.json'));
+        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'add_building.json'));
 
         $parent = $node->parent();
         $this->assertBoundedContextNode($parent);
@@ -45,7 +51,7 @@ final class JsonNodeTest extends TestCase
      */
     public function it_returns_sources(): void
     {
-        $node = JsonNode::fromJson(file_get_contents(self::FILES_DIR . 'add_building.json'));
+        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'add_building.json'));
 
         foreach ($node->sources() as $source) {
             $this->assertSame('i5hHo93xQP8cvhdTh25DHq', $source->id());
@@ -67,7 +73,7 @@ final class JsonNodeTest extends TestCase
      */
     public function it_returns_targets(): void
     {
-        $node = JsonNode::fromJson(file_get_contents(self::FILES_DIR . 'add_building.json'));
+        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'add_building.json'));
 
         foreach ($node->targets() as $target) {
             $this->assertSame('ctuHbHKF1pwqQfa3VZ1nfz', $target->id());

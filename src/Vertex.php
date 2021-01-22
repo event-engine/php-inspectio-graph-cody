@@ -66,6 +66,9 @@ abstract class Vertex implements VertexType
             case VertexType::TYPE_EVENT:
                 $class = Event::class;
                 break;
+            case VertexType::TYPE_DOCUMENT:
+                $class = Document::class;
+                break;
             default:
                 throw new RuntimeException(\sprintf('Given type "%s" is not supported', $type));
         }
