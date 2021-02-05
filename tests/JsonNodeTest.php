@@ -23,7 +23,7 @@ final class JsonNodeTest extends TestCase
      */
     public function it_can_be_created_from_json(): void
     {
-        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'add_building.json'));
+        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'building.json'));
 
         $this->assertSame('o67B4pXhbDvuF2BnBsBy27', $node->id());
         $this->assertSame('Building', $node->name());
@@ -40,7 +40,7 @@ final class JsonNodeTest extends TestCase
         $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'add_building.json'));
 
         $parent = $node->parent();
-        $this->assertBoundedContextNode($parent);
+        $this->assertFeatureNode($parent);
 
         $parent = $parent->parent();
         $this->assertBoardLayerNode($parent);
@@ -51,7 +51,7 @@ final class JsonNodeTest extends TestCase
      */
     public function it_returns_sources(): void
     {
-        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'add_building.json'));
+        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'building.json'));
 
         foreach ($node->sources() as $source) {
             $this->assertSame('i5hHo93xQP8cvhdTh25DHq', $source->id());
@@ -73,7 +73,7 @@ final class JsonNodeTest extends TestCase
      */
     public function it_returns_targets(): void
     {
-        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'add_building.json'));
+        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'building.json'));
 
         foreach ($node->targets() as $target) {
             $this->assertSame('ctuHbHKF1pwqQfa3VZ1nfz', $target->id());
@@ -90,10 +90,20 @@ final class JsonNodeTest extends TestCase
         }
     }
 
+    private function assertFeatureNode(Node $node): void
+    {
+        $this->assertInstanceOf(Node::class, $node);
+        $this->assertSame('stW5qRRPsQbowcqux7M2QX', $node->id());
+        $this->assertSame('Building', $node->name());
+        $this->assertSame('feature', $node->type());
+        $this->assertFalse($node->isLayer());
+        $this->assertFalse($node->isDefaultLayer());
+    }
+
     private function assertBoundedContextNode(Node $node): void
     {
         $this->assertInstanceOf(Node::class, $node);
-        $this->assertSame('ci42SWefUq5RhLogkWzhQC', $node->id());
+        $this->assertSame('stW5qRRPsQbowcqux7M2QX', $node->id());
         $this->assertSame('Building', $node->name());
         $this->assertSame('boundedContext', $node->type());
         $this->assertFalse($node->isLayer());

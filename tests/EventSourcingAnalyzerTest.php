@@ -22,16 +22,25 @@ final class EventSourcingAnalyzerTest extends TestCase
     private const FILES_DIR = __DIR__ . DIRECTORY_SEPARATOR . '_files' . DIRECTORY_SEPARATOR;
 
     /**
+     * @var callable
+     */
+    private $filter;
+
+    public function setUp(): void
+    {
+        $this->filter = static function (string $value) {
+            return \trim($value);
+        };
+    }
+
+    /**
      * @test
      */
     public function it_returns_command_map_of_command_node(): void
     {
         $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'add_building.json'));
-        $filter = static function (string $value) {
-            return $value;
-        };
 
-        $eventSourcingAnalyzer = new EventSourcingAnalyzer($node, $filter);
+        $eventSourcingAnalyzer = new EventSourcingAnalyzer($node, $this->filter);
         $commandMap = $eventSourcingAnalyzer->commandMap();
 
         $this->assertCount(1, $commandMap);
@@ -43,33 +52,11 @@ final class EventSourcingAnalyzerTest extends TestCase
     /**
      * @test
      */
-    public function it_returns_event_map_of_command_node(): void
-    {
-        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'add_building.json'));
-        $filter = static function (string $value) {
-            return $value;
-        };
-
-        $eventSourcingAnalyzer = new EventSourcingAnalyzer($node, $filter);
-        $eventMap = $eventSourcingAnalyzer->eventMap();
-
-        $this->assertCount(1, $eventMap);
-        $event = $eventMap->current();
-
-        $this->assertEventBuildingAdded($event);
-    }
-
-    /**
-     * @test
-     */
     public function it_returns_aggregate_map_of_command_node(): void
     {
         $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'add_building.json'));
-        $filter = static function (string $value) {
-            return $value;
-        };
 
-        $eventSourcingAnalyzer = new EventSourcingAnalyzer($node, $filter);
+        $eventSourcingAnalyzer = new EventSourcingAnalyzer($node, $this->filter);
         $aggregateMap = $eventSourcingAnalyzer->aggregateMap();
 
         $this->assertCount(1, $aggregateMap);
@@ -79,10 +66,6 @@ final class EventSourcingAnalyzerTest extends TestCase
         $commandMap = $aggregate->commandMap();
         $this->assertCount(1, $commandMap);
         $this->assertCommandAddBuilding($commandMap->current());
-
-        $eventMap = $aggregate->eventMap();
-        $this->assertCount(1, $eventMap);
-        $this->assertEventBuildingAdded($eventMap->current());
     }
 
     /**
@@ -90,18 +73,15 @@ final class EventSourcingAnalyzerTest extends TestCase
      */
     public function it_returns_command_map_of_aggregate_node(): void
     {
-        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'building_check_in_user.json'));
-        $filter = static function (string $value) {
-            return $value;
-        };
+        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'building.json'));
 
-        $eventSourcingAnalyzer = new EventSourcingAnalyzer($node, $filter);
+        $eventSourcingAnalyzer = new EventSourcingAnalyzer($node, $this->filter);
         $commandMap = $eventSourcingAnalyzer->commandMap();
 
         $this->assertCount(1, $commandMap);
         $command = $commandMap->current();
 
-        $this->assertCommandCheckInUser($command);
+        $this->assertCommandAddBuilding($command);
     }
 
     /**
@@ -109,12 +89,9 @@ final class EventSourcingAnalyzerTest extends TestCase
      */
     public function it_returns_event_map_of_aggregate_node(): void
     {
-        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'building_check_in_user.json'));
-        $filter = static function (string $value) {
-            return $value;
-        };
+        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'building_user.json'));
 
-        $eventSourcingAnalyzer = new EventSourcingAnalyzer($node, $filter);
+        $eventSourcingAnalyzer = new EventSourcingAnalyzer($node, $this->filter);
         $eventMap = $eventSourcingAnalyzer->eventMap();
 
         $this->assertCount(2, $eventMap);
@@ -131,12 +108,9 @@ final class EventSourcingAnalyzerTest extends TestCase
      */
     public function it_returns_aggregate_map_of_aggregate_node(): void
     {
-        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'building_check_in_user.json'));
-        $filter = static function (string $value) {
-            return $value;
-        };
+        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'building_user.json'));
 
-        $eventSourcingAnalyzer = new EventSourcingAnalyzer($node, $filter);
+        $eventSourcingAnalyzer = new EventSourcingAnalyzer($node, $this->filter);
         $aggregateMap = $eventSourcingAnalyzer->aggregateMap();
 
         $this->assertCount(1, $aggregateMap);

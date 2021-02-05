@@ -12,7 +12,6 @@ namespace EventEngine\InspectioGraphCody;
 
 use EventEngine\InspectioGraph\AggregateConnection;
 use EventEngine\InspectioGraph\AggregateConnectionMap;
-use EventEngine\InspectioGraph\EventType;
 use EventEngine\InspectioGraph\VertexMap;
 use EventEngine\InspectioGraph\VertexType;
 use EventEngine\InspectioGraphCody\Exception\RuntimeException;
@@ -64,6 +63,10 @@ final class EventSourcingAnalyzer implements \EventEngine\InspectioGraph\EventSo
         $this->metadataFactory = $metadataFactory;
     }
 
+    /**
+     * @param string $type
+     * @return Node[]
+     */
     private function filterVerticesByType(string $type): array
     {
         $vertices = [];
@@ -82,6 +85,71 @@ final class EventSourcingAnalyzer implements \EventEngine\InspectioGraph\EventSo
             if ($target->type() === $type) {
                 $vertices[] = $target;
             }
+        }
+
+        return $vertices;
+    }
+
+    /**
+     * @param Node $node
+     * @return Node[]
+     */
+    private function filterCommandsWithConnectionOf(Node $node): array
+    {
+        $vertices = [];
+
+        switch ($this->node->type()) {
+            case VertexType::TYPE_AGGREGATE:
+                foreach ($this->node->sources() as $source) {
+                    if ($source->type() === VertexType::TYPE_COMMAND) {
+                        $vertices[] = $source;
+                    }
+                }
+                break;
+            case VertexType::TYPE_COMMAND:
+                foreach ($this->node->targets() as $target) {
+                    if ($this->areNodesEqual($target, $node)) {
+                        $vertices[] = $this->node;
+                    }
+                }
+                break;
+            default:
+                break;
+        }
+
+        return $vertices;
+    }
+
+    /**
+     * @param Node $node
+     * @return Node[]
+     */
+    private function filterEventsWithConnectionOf(Node $node): array
+    {
+        $vertices = [];
+
+        switch ($this->node->type()) {
+            case VertexType::TYPE_AGGREGATE:
+                foreach ($this->node->targets() as $target) {
+                    if ($target->type() === VertexType::TYPE_EVENT) {
+                        $vertices[] = $target;
+                    }
+                }
+                break;
+            case VertexType::TYPE_EVENT:
+                foreach ($this->node->sources() as $source) {
+                    if ($this->areNodesEqual($source, $node)) {
+                        $vertices[] = $source;
+                    }
+                }
+                foreach ($this->node->targets() as $target) {
+                    if ($this->areNodesEqual($target, $node)) {
+                        $vertices[] = $target;
+                    }
+                }
+                break;
+            default:
+                break;
         }
 
         return $vertices;
@@ -124,45 +192,36 @@ final class EventSourcingAnalyzer implements \EventEngine\InspectioGraph\EventSo
                         // @phpstan-ignore-next-line
                         new AggregateConnection($aggregate)
                     );
-                }
+                    $commandVertices = $this->filterCommandsWithConnectionOf($vertex);
+                    $eventVertices = $this->filterEventsWithConnectionOf($vertex);
 
-                $commandName = '';
-                $command = null;
+                    $countCommandVertices = \count($commandVertices);
 
-                foreach ($vertex->sources() as $source) {
-                    $command = $source;
-                    break;
-                }
+                    if ($countCommandVertices > 1) {
+                        throw new RuntimeException(
+                            \sprintf('Multiple command connections to aggregate "%s" found. Can not handle it.', $name)
+                        );
+                    }
 
-                if ($command !== null && $command->type() === VertexType::TYPE_COMMAND) {
-                    $commandName = ($this->filterName)($command->name());
-                }
+                    if ($countCommandVertices === 1) {
+                        $command = Vertex::fromCodyNode(\current($commandVertices), $this->filterName);
 
-                if ($commandName === null || false === $commandMap->has($commandName)) {
-                    throw new RuntimeException('Could not find command for aggregate');
-                }
+                        if (true === $commandMap->has($command->name())) {
+                            $events = [];
 
-                /** @var EventType[] $events */
-                $events = \array_map(
-                    function (Node $vertex) use ($eventMap) {
-                        $eventName = ($this->filterName)($vertex->name());
+                            foreach ($eventVertices as $eventVertex) {
+                                $event = Vertex::fromCodyNode($eventVertex, $this->filterName);
 
-                        if ($vertex->type() !== VertexType::TYPE_EVENT || false === $eventMap->has($eventName)) {
-                            throw new RuntimeException('Could not find event for aggregate');
+                                if ($eventMap->has($event->name())) {
+                                    $events[] = $eventMap->vertex($event->name());
+                                }
+                            }
+                            // @phpstan-ignore-next-line
+                            $map = $this->aggregateConnectionMap->aggregateConnection($name)->withCommandEvents($commandMap->vertex($command->name()), ...$events);
+                            $this->aggregateConnectionMap = $this->aggregateConnectionMap->with($name, $map);
                         }
-
-                        return $eventMap->vertex($eventName);
-                    },
-                    $vertex->targets()
-                );
-
-                $this->aggregateConnectionMap = $this->aggregateConnectionMap->with(
-                    $name,
-                    $this->aggregateConnectionMap->aggregateConnection($name)->withCommandEvents(
-                        $commandMap->vertex($commandName), // @phpstan-ignore-line
-                        ...$events
-                    )
-                );
+                    }
+                }
             }
         }
 
@@ -186,5 +245,11 @@ final class EventSourcingAnalyzer implements \EventEngine\InspectioGraph\EventSo
             },
             $this->filterVerticesByType($type)
         );
+    }
+
+    private function areNodesEqual(Node $a, Node $b): bool
+    {
+        return $a->name() === $b->name()
+            && $a->type() === $b->type();
     }
 }
