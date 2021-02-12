@@ -44,7 +44,8 @@
         "roave/security-advisories": "dev-master"
     },
     "suggest": {
-        "open-code-modeling/php-code-generator": "To use the static factory methods of Transformator classes for Code Generator workflow configuration"
+        "open-code-modeling/php-code-generator": "To use the static factory methods of Transformator classes for Code Generator workflow configuration",
+        "open-code-modeling/php-filter": "For pre-configured filters for proper class / method / property names etc."
     },
     "conflict": {
         "open-code-modeling/php-code-generator": "^0.1.0"
