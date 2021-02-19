@@ -66,6 +66,31 @@ final class EventSourcingAnalyzerTest extends TestCase
         $commandMap = $aggregate->commandMap();
         $this->assertCount(1, $commandMap);
         $this->assertCommandAddBuilding($commandMap->current());
+
+        $eventMap = $aggregate->eventMap();
+        $this->assertCount(0, $eventMap);
+    }
+
+    /**
+     * @test
+     */
+    public function it_returns_aggregate_map_of_event_node(): void
+    {
+        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'building_added.json'));
+
+        $eventSourcingAnalyzer = new EventSourcingAnalyzer($node, $this->filter);
+        $aggregateMap = $eventSourcingAnalyzer->aggregateMap();
+
+        $this->assertCount(1, $aggregateMap);
+        $aggregate = $aggregateMap->current();
+        $this->assertAggregateBuilding($aggregate->aggregate(), 'buTwEKKNLBBo6WAERYN1Gn');
+
+        $eventMap = $aggregate->eventMap();
+        $this->assertCount(1, $eventMap);
+        $this->assertEventBuildingAdded($eventMap->current());
+
+        $commandMap = $aggregate->commandMap();
+        $this->assertCount(0, $commandMap);
     }
 
     /**
@@ -119,7 +144,8 @@ final class EventSourcingAnalyzerTest extends TestCase
 
         $commandMap = $aggregate->commandMap();
         $this->assertCount(1, $commandMap);
-        $this->assertCommandCheckInUser($commandMap->current());
+        $command = $commandMap->current();
+        $this->assertCommandCheckInUser($command);
 
         $eventMap = $aggregate->eventMap();
         $this->assertCount(2, $eventMap);
@@ -129,6 +155,14 @@ final class EventSourcingAnalyzerTest extends TestCase
         $eventMap->next();
         $event = $eventMap->current();
         $this->assertEventDoubleCheckInDetected($event);
+
+        $commandsToEventsMap = $aggregate->commandsToEventsMap();
+
+        $this->assertCount(1, $commandsToEventsMap);
+        $this->assertTrue($commandsToEventsMap->offsetExists($command));
+
+        $events = $commandsToEventsMap->offsetGet($command);
+        $this->assertCount(2, $events);
     }
 
     private function assertAggregateBuilding(AggregateType $aggregate, string $id): void
@@ -148,8 +182,8 @@ final class EventSourcingAnalyzerTest extends TestCase
     private function assertEventBuildingAdded(EventType $event): void
     {
         $this->assertSame('ctuHbHKF1pwqQfa3VZ1nfz', $event->id());
-        $this->assertSame('BuildingAdded', $event->name());
-        $this->assertSame('BuildingAdded', $event->label());
+        $this->assertSame('Building Added', $event->name());
+        $this->assertSame('Building Added', $event->label());
     }
 
     private function assertCommandCheckInUser(CommandType $command): void

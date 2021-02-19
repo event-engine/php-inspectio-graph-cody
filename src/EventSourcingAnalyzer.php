@@ -139,12 +139,12 @@ final class EventSourcingAnalyzer implements \EventEngine\InspectioGraph\EventSo
             case VertexType::TYPE_EVENT:
                 foreach ($this->node->sources() as $source) {
                     if ($this->areNodesEqual($source, $node)) {
-                        $vertices[] = $source;
+                        $vertices[] = $this->node;
                     }
                 }
                 foreach ($this->node->targets() as $target) {
                     if ($this->areNodesEqual($target, $node)) {
-                        $vertices[] = $target;
+                        $vertices[] = $this->node;
                     }
                 }
                 break;
@@ -181,47 +181,57 @@ final class EventSourcingAnalyzer implements \EventEngine\InspectioGraph\EventSo
             $commandMap = $this->commandMap();
             $eventMap = $this->eventMap();
 
-            /** @var Node $vertex */
-            foreach ($this->filterVerticesByType(VertexType::TYPE_AGGREGATE) as $vertex) {
-                $aggregate = Vertex::fromCodyNode($vertex, $this->filterName, $this->metadataFactory);
+            /** @var Node $aggregateVertex */
+            foreach ($this->filterVerticesByType(VertexType::TYPE_AGGREGATE) as $aggregateVertex) {
+                $aggregate = Vertex::fromCodyNode($aggregateVertex, $this->filterName, $this->metadataFactory);
                 $name = $aggregate->name();
 
-                if (false === $this->aggregateConnectionMap->has($name)) {
-                    $this->aggregateConnectionMap = $this->aggregateConnectionMap->with(
-                        $name,
-                        // @phpstan-ignore-next-line
-                        new AggregateConnection($aggregate)
+                if (true === $this->aggregateConnectionMap->has($name)) {
+                    continue;
+                }
+                // @phpstan-ignore-next-line
+                $aggregateConnection = new AggregateConnection($aggregate);
+
+                $this->aggregateConnectionMap = $this->aggregateConnectionMap->with($name, $aggregateConnection);
+                $commandVertices = $this->filterCommandsWithConnectionOf($aggregateVertex);
+                $eventVertices = $this->filterEventsWithConnectionOf($aggregateVertex);
+
+                $countCommandVertices = \count($commandVertices);
+
+                if ($countCommandVertices > 1) {
+                    throw new RuntimeException(
+                        \sprintf('Multiple command connections to aggregate "%s" found. Can not handle it.', $name)
                     );
-                    $commandVertices = $this->filterCommandsWithConnectionOf($vertex);
-                    $eventVertices = $this->filterEventsWithConnectionOf($vertex);
+                }
 
-                    $countCommandVertices = \count($commandVertices);
+                if ($countCommandVertices === 1) {
+                    $command = Vertex::fromCodyNode(\current($commandVertices), $this->filterName);
 
-                    if ($countCommandVertices > 1) {
-                        throw new RuntimeException(
-                            \sprintf('Multiple command connections to aggregate "%s" found. Can not handle it.', $name)
-                        );
-                    }
+                    if (true === $commandMap->has($command->name())) {
+                        $events = [];
 
-                    if ($countCommandVertices === 1) {
-                        $command = Vertex::fromCodyNode(\current($commandVertices), $this->filterName);
+                        foreach ($eventVertices as $eventVertex) {
+                            $event = Vertex::fromCodyNode($eventVertex, $this->filterName);
 
-                        if (true === $commandMap->has($command->name())) {
-                            $events = [];
-
-                            foreach ($eventVertices as $eventVertex) {
-                                $event = Vertex::fromCodyNode($eventVertex, $this->filterName);
-
-                                if ($eventMap->has($event->name())) {
-                                    $events[] = $eventMap->vertex($event->name());
-                                }
+                            if ($eventMap->has($event->name())) {
+                                $events[] = $eventMap->vertex($event->name());
                             }
-                            // @phpstan-ignore-next-line
-                            $map = $this->aggregateConnectionMap->aggregateConnection($name)->withCommandEvents($commandMap->vertex($command->name()), ...$events);
-                            $this->aggregateConnectionMap = $this->aggregateConnectionMap->with($name, $map);
+                        }
+                        // @phpstan-ignore-next-line
+                        $aggregateConnection = $aggregateConnection->withCommandEvents($commandMap->vertex($command->name()), ...$events);
+                    }
+                } elseif (\count($eventVertices) > 0) {
+                    foreach ($eventVertices as $eventVertex) {
+                        $events = [];
+                        $event = Vertex::fromCodyNode($eventVertex, $this->filterName);
+
+                        if ($eventMap->has($event->name())) {
+                            $events[] = $eventMap->vertex($event->name());
                         }
                     }
+                    $aggregateConnection = $aggregateConnection->withEvents(...$events);
                 }
+                $this->aggregateConnectionMap = $this->aggregateConnectionMap->with($name, $aggregateConnection);
             }
         }
 
