@@ -69,6 +69,18 @@ abstract class Vertex implements VertexType
             case VertexType::TYPE_DOCUMENT:
                 $class = Document::class;
                 break;
+            case VertexType::TYPE_POLICY:
+                $class = Policy::class;
+                break;
+            case VertexType::TYPE_UI:
+                $class = Ui::class;
+                break;
+            case VertexType::TYPE_FEATURE:
+                $class = Feature::class;
+                break;
+            case VertexType::TYPE_BOUNDED_CONTEXT:
+                $class = BoundedContext::class;
+                break;
             default:
                 throw new RuntimeException(\sprintf('Given type "%s" is not supported', $type));
         }

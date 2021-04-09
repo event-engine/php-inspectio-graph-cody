@@ -57,7 +57,7 @@ final class EventSourcingAnalyzerTest extends TestCase
         $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'add_building.json'));
 
         $eventSourcingAnalyzer = new EventSourcingAnalyzer($node, $this->filter);
-        $aggregateMap = $eventSourcingAnalyzer->aggregateMap();
+        $aggregateMap = $eventSourcingAnalyzer->aggregateConnectionMap();
 
         $this->assertCount(1, $aggregateMap);
         $aggregate = $aggregateMap->current();
@@ -79,7 +79,7 @@ final class EventSourcingAnalyzerTest extends TestCase
         $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'building_added.json'));
 
         $eventSourcingAnalyzer = new EventSourcingAnalyzer($node, $this->filter);
-        $aggregateMap = $eventSourcingAnalyzer->aggregateMap();
+        $aggregateMap = $eventSourcingAnalyzer->aggregateConnectionMap();
 
         $this->assertCount(1, $aggregateMap);
         $aggregate = $aggregateMap->current();
@@ -136,7 +136,7 @@ final class EventSourcingAnalyzerTest extends TestCase
         $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'building_user.json'));
 
         $eventSourcingAnalyzer = new EventSourcingAnalyzer($node, $this->filter);
-        $aggregateMap = $eventSourcingAnalyzer->aggregateMap();
+        $aggregateMap = $eventSourcingAnalyzer->aggregateConnectionMap();
 
         $this->assertCount(1, $aggregateMap);
         $aggregate = $aggregateMap->current();

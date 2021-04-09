@@ -10,13 +10,14 @@ declare(strict_types=1);
 
 namespace EventEngine\InspectioGraphCody;
 
-use EventEngine\InspectioGraph\AggregateConnection;
-use EventEngine\InspectioGraph\AggregateConnectionMap;
+use EventEngine\InspectioGraph;
+use EventEngine\InspectioGraph\Connection\AggregateConnection;
+use EventEngine\InspectioGraph\Connection\AggregateConnectionMap;
 use EventEngine\InspectioGraph\VertexMap;
 use EventEngine\InspectioGraph\VertexType;
 use EventEngine\InspectioGraphCody\Exception\RuntimeException;
 
-final class EventSourcingAnalyzer implements \EventEngine\InspectioGraph\EventSourcingAnalyzer
+final class EventSourcingAnalyzer implements InspectioGraph\EventSourcingAnalyzer, InspectioGraph\Connection\AggregateConnectionAnalyzer
 {
     /**
      * @var Node
@@ -36,6 +37,16 @@ final class EventSourcingAnalyzer implements \EventEngine\InspectioGraph\EventSo
     /**
      * @var VertexMap
      */
+    private $aggregateMap;
+
+    /**
+     * @var AggregateConnectionMap
+     */
+    private $aggregateConnectionMap;
+
+    /**
+     * @var VertexMap
+     */
     private $eventMap;
 
     /**
@@ -44,9 +55,34 @@ final class EventSourcingAnalyzer implements \EventEngine\InspectioGraph\EventSo
     private $documentMap;
 
     /**
-     * @var AggregateConnectionMap
+     * @var VertexMap
      */
-    private $aggregateConnectionMap;
+    private $policyMap;
+
+    /**
+     * @var VertexMap
+     */
+    private $uiMap;
+
+    /**
+     * @var VertexMap
+     */
+    private $externalSystemMap;
+
+    /**
+     * @var VertexMap
+     */
+    private $hotSpotMap;
+
+    /**
+     * @var VertexMap
+     */
+    private $featureMap;
+
+    /**
+     * @var VertexMap
+     */
+    private $boundedContextMap;
 
     /**
      * @var callable
@@ -75,6 +111,12 @@ final class EventSourcingAnalyzer implements \EventEngine\InspectioGraph\EventSo
             $vertices[] = $this->node;
         }
 
+        $parent = $this->node->parent();
+
+        if ($parent && $parent->type() === $type) {
+            $vertices[] = $parent;
+        }
+
         foreach ($this->node->sources() as $source) {
             if ($source->type() === $type) {
                 $vertices[] = $source;
@@ -84,6 +126,12 @@ final class EventSourcingAnalyzer implements \EventEngine\InspectioGraph\EventSo
         foreach ($this->node->targets() as $target) {
             if ($target->type() === $type) {
                 $vertices[] = $target;
+            }
+        }
+
+        foreach ($this->node->children() as $child) {
+            if ($child->type() === $type) {
+                $vertices[] = $child;
             }
         }
 
@@ -173,7 +221,16 @@ final class EventSourcingAnalyzer implements \EventEngine\InspectioGraph\EventSo
         return $this->eventMap;
     }
 
-    public function aggregateMap(): AggregateConnectionMap
+    public function aggregateMap(): VertexMap
+    {
+        if (null === $this->aggregateMap) {
+            $this->aggregateMap = VertexMap::fromVertices(...$this->vertexMapByType(VertexType::TYPE_AGGREGATE));
+        }
+
+        return $this->aggregateMap;
+    }
+
+    public function aggregateConnectionMap(): AggregateConnectionMap
     {
         if (null === $this->aggregateConnectionMap) {
             $this->aggregateConnectionMap = AggregateConnectionMap::emptyMap();
@@ -261,5 +318,59 @@ final class EventSourcingAnalyzer implements \EventEngine\InspectioGraph\EventSo
     {
         return $a->name() === $b->name()
             && $a->type() === $b->type();
+    }
+
+    public function policyMap(): VertexMap
+    {
+        if (null === $this->policyMap) {
+            $this->policyMap = VertexMap::fromVertices(...$this->vertexMapByType(VertexType::TYPE_POLICY));
+        }
+
+        return $this->policyMap;
+    }
+
+    public function uiMap(): VertexMap
+    {
+        if (null === $this->uiMap) {
+            $this->uiMap = VertexMap::fromVertices(...$this->vertexMapByType(VertexType::TYPE_UI));
+        }
+
+        return $this->uiMap;
+    }
+
+    public function featureMap(): VertexMap
+    {
+        if (null === $this->featureMap) {
+            $this->featureMap = VertexMap::fromVertices(...$this->vertexMapByType(VertexType::TYPE_FEATURE));
+        }
+
+        return $this->featureMap;
+    }
+
+    public function boundedContextMap(): VertexMap
+    {
+        if (null === $this->boundedContextMap) {
+            $this->boundedContextMap = VertexMap::fromVertices(...$this->vertexMapByType(VertexType::TYPE_BOUNDED_CONTEXT));
+        }
+
+        return $this->boundedContextMap;
+    }
+
+    public function externalSystemMap(): VertexMap
+    {
+        if (null === $this->externalSystemMap) {
+            $this->externalSystemMap = VertexMap::fromVertices(...$this->vertexMapByType(VertexType::TYPE_EXTERNAL_SYSTEM));
+        }
+
+        return $this->externalSystemMap;
+    }
+
+    public function hotSpotMap(): VertexMap
+    {
+        if (null === $this->hotSpotMap) {
+            $this->hotSpotMap = VertexMap::fromVertices(...$this->vertexMapByType(VertexType::TYPE_HOT_SPOT));
+        }
+
+        return $this->hotSpotMap;
     }
 }

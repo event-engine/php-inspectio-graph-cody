@@ -31,7 +31,7 @@
     },
     "require": {
         "php": "^7.3 || ^8.0",
-        "event-engine/php-inspectio-graph": "^0.3.0",
+        "event-engine/php-inspectio-graph": "dev-feature/add-missing-types",
         "ext-json": "*"
     },
     "require-dev": {
