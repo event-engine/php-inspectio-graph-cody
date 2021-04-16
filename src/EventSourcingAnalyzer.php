@@ -12,12 +12,16 @@ namespace EventEngine\InspectioGraphCody;
 
 use EventEngine\InspectioGraph;
 use EventEngine\InspectioGraph\Connection\AggregateConnection;
+use EventEngine\InspectioGraph\Connection\AggregateConnectionAnalyzer;
 use EventEngine\InspectioGraph\Connection\AggregateConnectionMap;
+use EventEngine\InspectioGraph\Connection\FeatureConnection;
+use EventEngine\InspectioGraph\Connection\FeatureConnectionAnalyzer;
+use EventEngine\InspectioGraph\Connection\FeatureConnectionMap;
 use EventEngine\InspectioGraph\VertexMap;
 use EventEngine\InspectioGraph\VertexType;
 use EventEngine\InspectioGraphCody\Exception\RuntimeException;
 
-final class EventSourcingAnalyzer implements InspectioGraph\EventSourcingAnalyzer, InspectioGraph\Connection\AggregateConnectionAnalyzer
+final class EventSourcingAnalyzer implements InspectioGraph\EventSourcingAnalyzer, AggregateConnectionAnalyzer, FeatureConnectionAnalyzer
 {
     /**
      * @var Node
@@ -80,6 +84,11 @@ final class EventSourcingAnalyzer implements InspectioGraph\EventSourcingAnalyze
     private $featureMap;
 
     /**
+     * @var FeatureConnectionMap
+     */
+    private $featureConnectionMap;
+
+    /**
      * @var VertexMap
      */
     private $boundedContextMap;
@@ -139,25 +148,86 @@ final class EventSourcingAnalyzer implements InspectioGraph\EventSourcingAnalyze
     }
 
     /**
-     * @param Node $node
-     * @return Node[]
+     * @param string $vertexType
+     * @param VertexType $node
+     * @return VertexMap
      */
-    private function filterCommandsWithConnectionOf(Node $node): array
+    private function filterVertexTypeWithConnectionOf(string $vertexType, VertexType $node): VertexMap
     {
-        $vertices = [];
+        $vertices = VertexMap::emptyMap();
 
         switch ($this->node->type()) {
             case VertexType::TYPE_AGGREGATE:
                 foreach ($this->node->sources() as $source) {
-                    if ($source->type() === VertexType::TYPE_COMMAND) {
-                        $vertices[] = $source;
+                    if ($source->type() === $vertexType
+                        && ($vertex = $this->vertexFromMap($source))
+                    ) {
+                        $vertices = $vertices->with($vertex);
                     }
+                }
+                foreach ($this->node->targets() as $target) {
+                    if ($target->type() === $vertexType
+                        && ($vertex = $this->vertexFromMap($target))
+                    ) {
+                        $vertices = $vertices->with($vertex);
+                    }
+                }
+                $parent = $this->node->parent();
+
+                if (null !== $parent
+                    && $this->node->type() === $vertexType
+                    && $this->areNodesEqual($parent, $node)
+                ) {
+                    $vertices = $vertices->with($this->vertexFromMap($this->node));
                 }
                 break;
             case VertexType::TYPE_COMMAND:
+            case VertexType::TYPE_EVENT:
+                foreach ($this->node->sources() as $source) {
+                    if ($this->node->type() === $vertexType
+                        && $this->areNodesEqual($source, $node)
+                    ) {
+                        $vertices = $vertices->with($this->vertexFromMap($this->node));
+                    } elseif ($parent = $source->parent()) {
+                        if ($source->type() === $vertexType
+                            && $this->areNodesEqual($parent, $node)
+                        ) {
+                            $vertices = $vertices->with($this->vertexFromMap($source));
+                        }
+                    }
+                }
                 foreach ($this->node->targets() as $target) {
-                    if ($this->areNodesEqual($target, $node)) {
-                        $vertices[] = $this->node;
+                    if ($this->node->type() === $vertexType
+                        && $this->areNodesEqual($target, $node)
+                    ) {
+                        $vertices = $vertices->with($this->vertexFromMap($this->node));
+                    } elseif ($parent = $target->parent()) {
+                        if ($target->type() === $vertexType
+                            && $this->areNodesEqual($parent, $node)
+                        ) {
+                            $vertices = $vertices->with($this->vertexFromMap($target));
+                        }
+                    }
+                }
+                $parent = $this->node->parent();
+
+                if (null !== $parent
+                    && $this->node->type() === $vertexType
+                    && $this->areNodesEqual($parent, $node)
+                ) {
+                    $vertices = $vertices->with($this->vertexFromMap($this->node));
+                }
+                break;
+            case VertexType::TYPE_FEATURE:
+                foreach ($this->node->children() as $child) {
+                    if ($child->type() === $vertexType
+                        && ($vertex = $this->vertexFromMap($child))
+                    ) {
+                        if ($node instanceof InspectioGraph\FeatureType) {
+                            $vertices = $vertices->with($vertex);
+                        } elseif ($this->isFeatureVertexSourceOrTargetOf($vertex, $node)) {
+                            $vertices = $vertices->with($vertex);
+                        }
                     }
                 }
                 break;
@@ -168,39 +238,28 @@ final class EventSourcingAnalyzer implements InspectioGraph\EventSourcingAnalyze
         return $vertices;
     }
 
-    /**
-     * @param Node $node
-     * @return Node[]
-     */
-    private function filterEventsWithConnectionOf(Node $node): array
+    private function isFeatureVertexSourceOrTargetOf(VertexType $vertexType, VertexType $node): bool
     {
-        $vertices = [];
+        foreach ($this->node->children() as $child) {
+            if ($child->type() === 'edge'
+                || $this->areNodesIdentical($child, $node) === false
+            ) {
+                continue;
+            }
 
-        switch ($this->node->type()) {
-            case VertexType::TYPE_AGGREGATE:
-                foreach ($this->node->targets() as $target) {
-                    if ($target->type() === VertexType::TYPE_EVENT) {
-                        $vertices[] = $target;
-                    }
+            foreach ($child->sources() as $childSource) {
+                if ($this->areNodesIdentical($childSource, $vertexType)) {
+                    return true;
                 }
-                break;
-            case VertexType::TYPE_EVENT:
-                foreach ($this->node->sources() as $source) {
-                    if ($this->areNodesEqual($source, $node)) {
-                        $vertices[] = $this->node;
-                    }
+            }
+            foreach ($child->targets() as $childTarget) {
+                if ($this->areNodesIdentical($childTarget, $vertexType)) {
+                    return true;
                 }
-                foreach ($this->node->targets() as $target) {
-                    if ($this->areNodesEqual($target, $node)) {
-                        $vertices[] = $this->node;
-                    }
-                }
-                break;
-            default:
-                break;
+            }
         }
 
-        return $vertices;
+        return false;
     }
 
     public function commandMap(): VertexMap
@@ -235,23 +294,16 @@ final class EventSourcingAnalyzer implements InspectioGraph\EventSourcingAnalyze
         if (null === $this->aggregateConnectionMap) {
             $this->aggregateConnectionMap = AggregateConnectionMap::emptyMap();
 
-            $commandMap = $this->commandMap();
-            $eventMap = $this->eventMap();
-
-            /** @var Node $aggregateVertex */
-            foreach ($this->filterVerticesByType(VertexType::TYPE_AGGREGATE) as $aggregateVertex) {
-                $aggregate = Vertex::fromCodyNode($aggregateVertex, $this->filterName, $this->metadataFactory);
+            foreach ($this->filterVerticesByType(VertexType::TYPE_AGGREGATE) as $node) {
+                $aggregate = Vertex::fromCodyNode($node, $this->filterName, $this->metadataFactory);
                 $name = $aggregate->name();
 
-                if (true === $this->aggregateConnectionMap->has($name)) {
-                    continue;
-                }
                 // @phpstan-ignore-next-line
                 $aggregateConnection = new AggregateConnection($aggregate);
 
-                $this->aggregateConnectionMap = $this->aggregateConnectionMap->with($name, $aggregateConnection);
-                $commandVertices = $this->filterCommandsWithConnectionOf($aggregateVertex);
-                $eventVertices = $this->filterEventsWithConnectionOf($aggregateVertex);
+                $this->aggregateConnectionMap = $this->aggregateConnectionMap->with($aggregate->id(), $aggregateConnection);
+                $commandVertices = $this->filterVertexTypeWithConnectionOf(VertexType::TYPE_COMMAND, $aggregate);
+                $eventVertices = $this->filterVertexTypeWithConnectionOf(VertexType::TYPE_EVENT, $aggregate);
 
                 $countCommandVertices = \count($commandVertices);
 
@@ -262,33 +314,14 @@ final class EventSourcingAnalyzer implements InspectioGraph\EventSourcingAnalyze
                 }
 
                 if ($countCommandVertices === 1) {
-                    $command = Vertex::fromCodyNode(\current($commandVertices), $this->filterName);
-
-                    if (true === $commandMap->has($command->name())) {
-                        $events = [];
-
-                        foreach ($eventVertices as $eventVertex) {
-                            $event = Vertex::fromCodyNode($eventVertex, $this->filterName);
-
-                            if ($eventMap->has($event->name())) {
-                                $events[] = $eventMap->vertex($event->name());
-                            }
-                        }
-                        // @phpstan-ignore-next-line
-                        $aggregateConnection = $aggregateConnection->withCommandEvents($commandMap->vertex($command->name()), ...$events);
-                    }
+                    $command = $commandVertices->current();
+                    // @phpstan-ignore-next-line
+                    $aggregateConnection = $aggregateConnection->withCommandEvents($command, ...$eventVertices->vertices());
                 } elseif (\count($eventVertices) > 0) {
-                    foreach ($eventVertices as $eventVertex) {
-                        $events = [];
-                        $event = Vertex::fromCodyNode($eventVertex, $this->filterName);
-
-                        if ($eventMap->has($event->name())) {
-                            $events[] = $eventMap->vertex($event->name());
-                        }
-                    }
-                    $aggregateConnection = $aggregateConnection->withEvents(...$events);
+                    // @phpstan-ignore-next-line
+                    $aggregateConnection = $aggregateConnection->withEvents(...$eventVertices->vertices());
                 }
-                $this->aggregateConnectionMap = $this->aggregateConnectionMap->with($name, $aggregateConnection);
+                $this->aggregateConnectionMap = $this->aggregateConnectionMap->with($aggregate->id(), $aggregateConnection);
             }
         }
 
@@ -314,10 +347,84 @@ final class EventSourcingAnalyzer implements InspectioGraph\EventSourcingAnalyze
         );
     }
 
-    private function areNodesEqual(Node $a, Node $b): bool
+    private function vertexFromMap(Node $node): ?VertexType
     {
-        return $a->name() === $b->name()
+        $name = ($this->filterName)($node->name());
+
+        switch ($node->type()) {
+            case VertexType::TYPE_COMMAND:
+                if ($this->commandMap()->has($name)) {
+                    return $this->commandMap()->vertex($name);
+                }
+
+                return null;
+            case VertexType::TYPE_AGGREGATE:
+                if ($this->aggregateMap()->has($name)) {
+                    return $this->aggregateMap()->vertex($name);
+                }
+
+                return null;
+            case VertexType::TYPE_EVENT:
+                if ($this->eventMap()->has($name)) {
+                    return $this->eventMap()->vertex($name);
+                }
+
+                return null;
+            case VertexType::TYPE_DOCUMENT:
+                if ($this->documentMap()->has($name)) {
+                    return $this->documentMap()->vertex($name);
+                }
+
+                return null;
+            case VertexType::TYPE_POLICY:
+                if ($this->policyMap()->has($name)) {
+                    return $this->policyMap()->vertex($name);
+                }
+
+                return null;
+            case VertexType::TYPE_UI:
+                if ($this->uiMap()->has($name)) {
+                    return $this->uiMap()->vertex($name);
+                }
+
+                return null;
+            case VertexType::TYPE_HOT_SPOT:
+                if ($this->hotSpotMap()->has($name)) {
+                    return $this->hotSpotMap()->vertex($name);
+                }
+
+                return null;
+            case VertexType::TYPE_FEATURE:
+                if ($this->featureMap()->has($name)) {
+                    return $this->featureMap()->vertex($name);
+                }
+
+                return null;
+            case VertexType::TYPE_BOUNDED_CONTEXT:
+                if ($this->boundedContextMap()->has($name)) {
+                    return $this->boundedContextMap()->vertex($name);
+                }
+
+                return null;
+            default:
+                throw new RuntimeException(
+                    \sprintf('Type "%s" is not supported', $node->type())
+                );
+        }
+    }
+
+    private function areNodesEqual(Node $a, VertexType $b): bool
+    {
+        $nodeName = ($this->filterName)($a->name());
+
+        return $nodeName === $b->name()
             && $a->type() === $b->type();
+    }
+
+    private function areNodesIdentical(Node $a, VertexType $b): bool
+    {
+        return $a->type() === $b->type()
+            && $a->id() === $b->id();
     }
 
     public function policyMap(): VertexMap
@@ -345,6 +452,36 @@ final class EventSourcingAnalyzer implements InspectioGraph\EventSourcingAnalyze
         }
 
         return $this->featureMap;
+    }
+
+    public function featureConnectionMap(): FeatureConnectionMap
+    {
+        if (null === $this->featureConnectionMap) {
+            $this->featureConnectionMap = FeatureConnectionMap::emptyMap();
+
+            foreach ($this->filterVerticesByType(VertexType::TYPE_FEATURE) as $node) {
+                $feature = Vertex::fromCodyNode($node, $this->filterName, $this->metadataFactory);
+
+                // @phpstan-ignore-next-line
+                $featureConnection = new FeatureConnection($feature);
+
+                $this->featureConnectionMap = $this->featureConnectionMap->with($feature->id(), $featureConnection);
+
+                $featureConnection = $featureConnection
+                    ->withCommands(...$this->filterVertexTypeWithConnectionOf(VertexType::TYPE_COMMAND, $feature)->vertices())
+                    ->withEvents(...$this->filterVertexTypeWithConnectionOf(VertexType::TYPE_EVENT, $feature)->vertices())
+                    ->withAggregates(...$this->filterVertexTypeWithConnectionOf(VertexType::TYPE_AGGREGATE, $feature)->vertices())
+                    ->withDocuments(...$this->filterVertexTypeWithConnectionOf(VertexType::TYPE_DOCUMENT, $feature)->vertices())
+                    ->withExternalSystems(...$this->filterVertexTypeWithConnectionOf(VertexType::TYPE_EXTERNAL_SYSTEM, $feature)->vertices())
+                    ->withHotSpots(...$this->filterVertexTypeWithConnectionOf(VertexType::TYPE_HOT_SPOT, $feature)->vertices())
+                    ->withPolicies(...$this->filterVertexTypeWithConnectionOf(VertexType::TYPE_POLICY, $feature)->vertices())
+                    ->withUis(...$this->filterVertexTypeWithConnectionOf(VertexType::TYPE_UI, $feature)->vertices());
+
+                $this->featureConnectionMap = $this->featureConnectionMap->with($feature->id(), $featureConnection);
+            }
+        }
+
+        return $this->featureConnectionMap;
     }
 
     public function boundedContextMap(): VertexMap
