@@ -183,6 +183,7 @@ final class EventSourcingAnalyzer implements InspectioGraph\EventSourcingAnalyze
                 break;
             case VertexType::TYPE_COMMAND:
             case VertexType::TYPE_EVENT:
+            case VertexType::TYPE_DOCUMENT:
                 foreach ($this->node->sources() as $source) {
                     if ($this->node->type() === $vertexType
                         && $this->areNodesEqual($source, $node)
@@ -304,6 +305,7 @@ final class EventSourcingAnalyzer implements InspectioGraph\EventSourcingAnalyze
                 $this->aggregateConnectionMap = $this->aggregateConnectionMap->with($aggregate->id(), $aggregateConnection);
                 $commandVertices = $this->filterVertexTypeWithConnectionOf(VertexType::TYPE_COMMAND, $aggregate);
                 $eventVertices = $this->filterVertexTypeWithConnectionOf(VertexType::TYPE_EVENT, $aggregate);
+                $documentVertices = $this->filterVertexTypeWithConnectionOf(VertexType::TYPE_DOCUMENT, $aggregate);
 
                 $countCommandVertices = \count($commandVertices);
 
@@ -321,6 +323,11 @@ final class EventSourcingAnalyzer implements InspectioGraph\EventSourcingAnalyze
                     // @phpstan-ignore-next-line
                     $aggregateConnection = $aggregateConnection->withEvents(...$eventVertices->vertices());
                 }
+
+                if (\count($documentVertices) > 0) {
+                    $aggregateConnection = $aggregateConnection->withDocuments(...$documentVertices->vertices());
+                }
+
                 $this->aggregateConnectionMap = $this->aggregateConnectionMap->with($aggregate->id(), $aggregateConnection);
             }
         }

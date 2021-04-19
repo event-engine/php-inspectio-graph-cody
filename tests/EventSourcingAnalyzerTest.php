@@ -12,6 +12,7 @@ namespace EventEngineTest\InspectioGraphCody;
 
 use EventEngine\InspectioGraph\AggregateType;
 use EventEngine\InspectioGraph\CommandType;
+use EventEngine\InspectioGraph\DocumentType;
 use EventEngine\InspectioGraph\EventType;
 use EventEngine\InspectioGraph\VertexMap;
 use EventEngine\InspectioGraphCody\EventSourcingAnalyzer;
@@ -109,6 +110,31 @@ final class EventSourcingAnalyzerTest extends TestCase
 
         $commandMap = $aggregate->commandMap();
         $this->assertCount(0, $commandMap);
+    }
+
+    /**
+     * @test
+     */
+    public function it_returns_aggregate_connection_map_of_document_node(): void
+    {
+        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'name_vo.json'));
+
+        $eventSourcingAnalyzer = new EventSourcingAnalyzer($node, $this->filter);
+        $aggregateMap = $eventSourcingAnalyzer->aggregateConnectionMap();
+
+        $this->assertCount(1, $aggregateMap);
+        $aggregate = $aggregateMap->current();
+        $this->assertAggregateBuilding($aggregate->aggregate(), 'buTwEKKNLBBo6WAERYN1Gn');
+
+        $documentMap = $aggregate->documentMap();
+        $this->assertCount(1, $documentMap);
+        $this->assertDocumentName($documentMap->current());
+
+        $commandMap = $aggregate->commandMap();
+        $this->assertCount(0, $commandMap);
+
+        $eventMap = $aggregate->eventMap();
+        $this->assertCount(0, $eventMap);
     }
 
     /**
@@ -356,5 +382,12 @@ final class EventSourcingAnalyzerTest extends TestCase
         $this->assertSame('8H79vCoLa3Y2RrpVy7ZMYE', $event->id());
         $this->assertSame('Double Check In Detected', $event->name());
         $this->assertSame('Double Check In Detected ', $event->label());
+    }
+
+    private function assertDocumentName(DocumentType $event): void
+    {
+        $this->assertSame('a4HLmzMb2g2MVQWXy4BKN1', $event->id());
+        $this->assertSame('Name', $event->name());
+        $this->assertSame('Name', $event->label());
     }
 }
