@@ -106,6 +106,53 @@ final class EventSourcingAnalyzer implements InspectioGraph\EventSourcingAnalyze
         $this->node = $node;
         $this->filterName = $filterName;
         $this->metadataFactory = $metadataFactory;
+
+        $this->analyse($node); // for BC, $node should be removed later
+    }
+
+    public function analyse(Node $node): void
+    {
+        $this->node = $node;
+
+        // all maps can be analyzed in parallel
+        $this->commandMap = $this->commandMap()->with(...$this->vertexMapByType(VertexType::TYPE_COMMAND));
+        $this->aggregateMap = $this->aggregateMap()->with(...$this->vertexMapByType(VertexType::TYPE_AGGREGATE));
+        $this->eventMap = $this->eventMap()->with(...$this->vertexMapByType(VertexType::TYPE_EVENT));
+        $this->documentMap = $this->documentMap()->with(...$this->vertexMapByType(VertexType::TYPE_DOCUMENT));
+        $this->policyMap = $this->policyMap()->with(...$this->vertexMapByType(VertexType::TYPE_POLICY));
+        $this->uiMap = $this->uiMap()->with(...$this->vertexMapByType(VertexType::TYPE_UI));
+        $this->externalSystemMap = $this->externalSystemMap()->with(...$this->vertexMapByType(VertexType::TYPE_EXTERNAL_SYSTEM));
+        $this->hotSpotMap = $this->hotSpotMap()->with(...$this->vertexMapByType(VertexType::TYPE_HOT_SPOT));
+        $this->featureMap = $this->featureMap()->with(...$this->vertexMapByType(VertexType::TYPE_FEATURE));
+        $this->boundedContextMap = $this->boundedContextMap()->with(...$this->boundedContextMap()->vertices());
+
+        // all connection maps can be analyzed in parallel
+        foreach ($this->determineAggregateConnection() as $aggregateConnection) {
+            $this->aggregateConnectionMap = $this->aggregateConnectionMap()->with(
+                $aggregateConnection->aggregate()->id(),
+                $aggregateConnection
+            );
+        }
+
+        foreach ($this->determineFeatureConnectionMap() as $featureConnection) {
+            $this->featureConnectionMap = $this->featureConnectionMap()->with(
+                $featureConnection->feature()->id(),
+                $featureConnection
+            );
+        }
+
+        $this->commandMap()->rewind();
+        $this->aggregateMap()->rewind();
+        $this->eventMap()->rewind();
+        $this->aggregateConnectionMap()->rewind();
+        $this->documentMap()->rewind();
+        $this->policyMap()->rewind();
+        $this->uiMap()->rewind();
+        $this->externalSystemMap()->rewind();
+        $this->hotSpotMap()->rewind();
+        $this->featureMap()->rewind();
+        $this->featureConnectionMap()->rewind();
+        $this->boundedContextMap()->rewind();
     }
 
     /**
@@ -295,44 +342,58 @@ final class EventSourcingAnalyzer implements InspectioGraph\EventSourcingAnalyze
         if (null === $this->aggregateConnectionMap) {
             $this->aggregateConnectionMap = AggregateConnectionMap::emptyMap();
 
-            foreach ($this->filterVerticesByType(VertexType::TYPE_AGGREGATE) as $node) {
-                $aggregate = Vertex::fromCodyNode($node, $this->filterName, $this->metadataFactory);
-                $name = $aggregate->name();
-
-                // @phpstan-ignore-next-line
-                $aggregateConnection = new AggregateConnection($aggregate);
-
-                $this->aggregateConnectionMap = $this->aggregateConnectionMap->with($aggregate->id(), $aggregateConnection);
-                $commandVertices = $this->filterVertexTypeWithConnectionOf(VertexType::TYPE_COMMAND, $aggregate);
-                $eventVertices = $this->filterVertexTypeWithConnectionOf(VertexType::TYPE_EVENT, $aggregate);
-                $documentVertices = $this->filterVertexTypeWithConnectionOf(VertexType::TYPE_DOCUMENT, $aggregate);
-
-                $countCommandVertices = \count($commandVertices);
-
-                if ($countCommandVertices > 1) {
-                    throw new RuntimeException(
-                        \sprintf('Multiple command connections to aggregate "%s" found. Can not handle it.', $name)
-                    );
-                }
-
-                if ($countCommandVertices === 1) {
-                    $command = $commandVertices->current();
-                    // @phpstan-ignore-next-line
-                    $aggregateConnection = $aggregateConnection->withCommandEvents($command, ...$eventVertices->vertices());
-                } elseif (\count($eventVertices) > 0) {
-                    // @phpstan-ignore-next-line
-                    $aggregateConnection = $aggregateConnection->withEvents(...$eventVertices->vertices());
-                }
-
-                if (\count($documentVertices) > 0) {
-                    $aggregateConnection = $aggregateConnection->withDocuments(...$documentVertices->vertices());
-                }
-
-                $this->aggregateConnectionMap = $this->aggregateConnectionMap->with($aggregate->id(), $aggregateConnection);
+            foreach ($this->determineAggregateConnection() as $aggregateConnection) {
+                $this->aggregateConnectionMap = $this->aggregateConnectionMap->with(
+                    $aggregateConnection->aggregate()->id(),
+                    $aggregateConnection
+                );
             }
         }
 
         return $this->aggregateConnectionMap;
+    }
+
+    private function determineAggregateConnection(): AggregateConnectionMap
+    {
+        $aggregateConnectionMap = AggregateConnectionMap::emptyMap();
+
+        foreach ($this->filterVerticesByType(VertexType::TYPE_AGGREGATE) as $node) {
+            $aggregate = Vertex::fromCodyNode($node, $this->filterName, $this->metadataFactory);
+            $name = $aggregate->name();
+
+            // @phpstan-ignore-next-line
+            $aggregateConnection = new AggregateConnection($aggregate);
+
+            $aggregateConnectionMap = $aggregateConnectionMap->with($aggregate->id(), $aggregateConnection);
+            $commandVertices = $this->filterVertexTypeWithConnectionOf(VertexType::TYPE_COMMAND, $aggregate);
+            $eventVertices = $this->filterVertexTypeWithConnectionOf(VertexType::TYPE_EVENT, $aggregate);
+            $documentVertices = $this->filterVertexTypeWithConnectionOf(VertexType::TYPE_DOCUMENT, $aggregate);
+
+            $countCommandVertices = \count($commandVertices);
+
+            if ($countCommandVertices > 1) {
+                throw new RuntimeException(
+                    \sprintf('Multiple command connections to aggregate "%s" found. Can not handle it.', $name)
+                );
+            }
+
+            if ($countCommandVertices === 1) {
+                $command = $commandVertices->current();
+                // @phpstan-ignore-next-line
+                $aggregateConnection = $aggregateConnection->withCommandEvents($command, ...$eventVertices->vertices());
+            } elseif (\count($eventVertices) > 0) {
+                // @phpstan-ignore-next-line
+                $aggregateConnection = $aggregateConnection->withEvents(...$eventVertices->vertices());
+            }
+
+            if (\count($documentVertices) > 0) {
+                $aggregateConnection = $aggregateConnection->withDocuments(...$documentVertices->vertices());
+            }
+
+            $aggregateConnectionMap = $aggregateConnectionMap->with($aggregate->id(), $aggregateConnection);
+        }
+
+        return $aggregateConnectionMap;
     }
 
     public function documentMap(): VertexMap
@@ -466,29 +527,43 @@ final class EventSourcingAnalyzer implements InspectioGraph\EventSourcingAnalyze
         if (null === $this->featureConnectionMap) {
             $this->featureConnectionMap = FeatureConnectionMap::emptyMap();
 
-            foreach ($this->filterVerticesByType(VertexType::TYPE_FEATURE) as $node) {
-                $feature = Vertex::fromCodyNode($node, $this->filterName, $this->metadataFactory);
-
-                // @phpstan-ignore-next-line
-                $featureConnection = new FeatureConnection($feature);
-
-                $this->featureConnectionMap = $this->featureConnectionMap->with($feature->id(), $featureConnection);
-
-                $featureConnection = $featureConnection
-                    ->withCommands(...$this->filterVertexTypeWithConnectionOf(VertexType::TYPE_COMMAND, $feature)->vertices())
-                    ->withEvents(...$this->filterVertexTypeWithConnectionOf(VertexType::TYPE_EVENT, $feature)->vertices())
-                    ->withAggregates(...$this->filterVertexTypeWithConnectionOf(VertexType::TYPE_AGGREGATE, $feature)->vertices())
-                    ->withDocuments(...$this->filterVertexTypeWithConnectionOf(VertexType::TYPE_DOCUMENT, $feature)->vertices())
-                    ->withExternalSystems(...$this->filterVertexTypeWithConnectionOf(VertexType::TYPE_EXTERNAL_SYSTEM, $feature)->vertices())
-                    ->withHotSpots(...$this->filterVertexTypeWithConnectionOf(VertexType::TYPE_HOT_SPOT, $feature)->vertices())
-                    ->withPolicies(...$this->filterVertexTypeWithConnectionOf(VertexType::TYPE_POLICY, $feature)->vertices())
-                    ->withUis(...$this->filterVertexTypeWithConnectionOf(VertexType::TYPE_UI, $feature)->vertices());
-
-                $this->featureConnectionMap = $this->featureConnectionMap->with($feature->id(), $featureConnection);
+            foreach ($this->determineFeatureConnectionMap() as $featureConnection) {
+                $this->featureConnectionMap = $this->featureConnectionMap->with(
+                    $featureConnection->feature()->id(),
+                    $featureConnection
+                );
             }
         }
 
         return $this->featureConnectionMap;
+    }
+
+    private function determineFeatureConnectionMap(): FeatureConnectionMap
+    {
+        $featureConnectionMap = FeatureConnectionMap::emptyMap();
+
+        foreach ($this->filterVerticesByType(VertexType::TYPE_FEATURE) as $node) {
+            $feature = Vertex::fromCodyNode($node, $this->filterName, $this->metadataFactory);
+
+            // @phpstan-ignore-next-line
+            $featureConnection = new FeatureConnection($feature);
+
+            $featureConnectionMap = $featureConnectionMap->with($feature->id(), $featureConnection);
+
+            $featureConnection = $featureConnection
+                ->withCommands(...$this->filterVertexTypeWithConnectionOf(VertexType::TYPE_COMMAND, $feature)->vertices())
+                ->withEvents(...$this->filterVertexTypeWithConnectionOf(VertexType::TYPE_EVENT, $feature)->vertices())
+                ->withAggregates(...$this->filterVertexTypeWithConnectionOf(VertexType::TYPE_AGGREGATE, $feature)->vertices())
+                ->withDocuments(...$this->filterVertexTypeWithConnectionOf(VertexType::TYPE_DOCUMENT, $feature)->vertices())
+                ->withExternalSystems(...$this->filterVertexTypeWithConnectionOf(VertexType::TYPE_EXTERNAL_SYSTEM, $feature)->vertices())
+                ->withHotSpots(...$this->filterVertexTypeWithConnectionOf(VertexType::TYPE_HOT_SPOT, $feature)->vertices())
+                ->withPolicies(...$this->filterVertexTypeWithConnectionOf(VertexType::TYPE_POLICY, $feature)->vertices())
+                ->withUis(...$this->filterVertexTypeWithConnectionOf(VertexType::TYPE_UI, $feature)->vertices());
+
+            $featureConnectionMap = $featureConnectionMap->with($feature->id(), $featureConnection);
+        }
+
+        return $featureConnectionMap;
     }
 
     public function boundedContextMap(): VertexMap

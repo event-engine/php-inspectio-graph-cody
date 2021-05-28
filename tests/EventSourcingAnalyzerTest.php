@@ -12,6 +12,7 @@ namespace EventEngineTest\InspectioGraphCody;
 
 use EventEngine\InspectioGraph\AggregateType;
 use EventEngine\InspectioGraph\CommandType;
+use EventEngine\InspectioGraph\Connection\AggregateConnection;
 use EventEngine\InspectioGraph\DocumentType;
 use EventEngine\InspectioGraph\EventType;
 use EventEngine\InspectioGraph\VertexMap;
@@ -48,7 +49,7 @@ final class EventSourcingAnalyzerTest extends TestCase
         $this->assertCount(1, $commandMap);
         $command = $commandMap->current();
 
-        $this->assertCommandAddBuilding($command);
+        $this->assertCommandAddBuilding($command, '9bJ5Y7yuBcfWyei7i2ZSDC');
     }
 
     /**
@@ -64,7 +65,7 @@ final class EventSourcingAnalyzerTest extends TestCase
         $this->assertCount(1, $featureConnectionMap);
         $featureConnection = $featureConnectionMap->current();
 
-        $this->assertCommandAddBuilding($featureConnection->commandMap()->current());
+        $this->assertCommandAddBuilding($featureConnection->commandMap()->current(), '9bJ5Y7yuBcfWyei7i2ZSDC');
         $this->assertAggregateBuilding($featureConnection->aggregateMap()->current(), 'buTwEKKNLBBo6WAERYN1Gn');
     }
 
@@ -76,18 +77,62 @@ final class EventSourcingAnalyzerTest extends TestCase
         $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'add_building.json'));
 
         $eventSourcingAnalyzer = new EventSourcingAnalyzer($node, $this->filter);
-        $aggregateMap = $eventSourcingAnalyzer->aggregateConnectionMap();
+        $aggregateConnectionMap = $eventSourcingAnalyzer->aggregateConnectionMap();
 
-        $this->assertCount(1, $aggregateMap);
-        $aggregate = $aggregateMap->current();
-        $this->assertAggregateBuilding($aggregate->aggregate(), 'buTwEKKNLBBo6WAERYN1Gn');
+        $this->assertCount(1, $aggregateConnectionMap);
 
-        $commandMap = $aggregate->commandMap();
+        $this->assertAggregateConnectionMapOfCommandAddBuilding($aggregateConnectionMap->current());
+    }
+
+    private function assertAggregateConnectionMapOfCommandAddBuilding(
+        AggregateConnection $aggregateConnection,
+        bool $withEvent = false): void
+    {
+        $this->assertAggregateBuilding($aggregateConnection->aggregate(), 'buTwEKKNLBBo6WAERYN1Gn');
+
+        $commandMap = $aggregateConnection->commandMap();
         $this->assertCount(1, $commandMap);
-        $this->assertCommandAddBuilding($commandMap->current());
+        $this->assertCommandAddBuilding($commandMap->current(), '9bJ5Y7yuBcfWyei7i2ZSDC');
 
-        $eventMap = $aggregate->eventMap();
-        $this->assertCount(0, $eventMap);
+        $eventMap = $aggregateConnection->eventMap();
+
+        if ($withEvent === false) {
+            $this->assertCount(0, $eventMap);
+        } else {
+            $this->assertCount(1, $eventMap);
+            $this->assertEventBuildingAdded($eventMap->current());
+        }
+    }
+
+    private function assertAggregateConnectionMapOfCommandCheckInUser(AggregateConnection $aggregateConnection): void
+    {
+        $this->assertAggregateBuilding($aggregateConnection->aggregate(), 'eiaS8gtsBemMReTNbeNRXj');
+
+        $commandMap = $aggregateConnection->commandMap();
+        $this->assertCount(1, $commandMap);
+        $this->assertCommandCheckInUser($commandMap->current());
+
+        $eventMap = $aggregateConnection->eventMap();
+        $eventMap->rewind();
+        $this->assertCount(2, $eventMap);
+        $this->assertEventUserCheckedIn($eventMap->current());
+
+        $eventMap->next();
+        $this->assertEventDoubleCheckInDetected($eventMap->current());
+    }
+
+    private function assertAggregateConnectionMapOfCommandCheckOutUser(AggregateConnection $aggregateConnection): void
+    {
+        $this->assertAggregateBuilding($aggregateConnection->aggregate(), 'jKrpwfkdZnT5xMRKMYrgTF');
+
+        $commandMap = $aggregateConnection->commandMap();
+        $this->assertCount(1, $commandMap);
+        $this->assertCommandCheckOutUser($commandMap->current());
+
+        $eventMap = $aggregateConnection->eventMap();
+        $eventMap->rewind();
+        $this->assertCount(1, $eventMap);
+        $this->assertEventUserCheckedOut($eventMap->current());
     }
 
     /**
@@ -175,7 +220,7 @@ final class EventSourcingAnalyzerTest extends TestCase
         $this->assertCount(1, $commandMap);
         $command = $commandMap->current();
 
-        $this->assertCommandAddBuilding($command);
+        $this->assertCommandAddBuilding($command, '9bJ5Y7yuBcfWyei7i2ZSDC');
     }
 
     /**
@@ -291,7 +336,7 @@ final class EventSourcingAnalyzerTest extends TestCase
         $this->assertCount(3, $aggregateConnectionMap);
 
         $aggregateConnection = $aggregateConnectionMap->current();
-        $this->assertCommandAddBuilding($aggregateConnection->commandMap()->current());
+        $this->assertCommandAddBuilding($aggregateConnection->commandMap()->current(), '9bJ5Y7yuBcfWyei7i2ZSDC');
         $this->assertEventBuildingAdded($aggregateConnection->eventMap()->current());
 
         $aggregateConnectionMap->next();
@@ -305,12 +350,203 @@ final class EventSourcingAnalyzerTest extends TestCase
         $this->assertEventDoubleCheckInDetected($eventMap->current());
     }
 
+    /**
+     * @test
+     */
+    public function it_analysis_nodes(): void
+    {
+        // order is important for assertions
+        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'add_building.json'));
+        $eventSourcingAnalyzer = new EventSourcingAnalyzer($node, $this->filter);
+
+        $this->assertCount(1, $eventSourcingAnalyzer->commandMap());
+        $this->assertCount(1, $eventSourcingAnalyzer->aggregateMap());
+        $this->assertCount(0, $eventSourcingAnalyzer->eventMap());
+        $this->assertCount(1, $eventSourcingAnalyzer->aggregateConnectionMap());
+        $this->assertCount(0, $eventSourcingAnalyzer->documentMap());
+        $this->assertCount(0, $eventSourcingAnalyzer->policyMap());
+        $this->assertCount(0, $eventSourcingAnalyzer->uiMap());
+        $this->assertCount(0, $eventSourcingAnalyzer->externalSystemMap());
+        $this->assertCount(0, $eventSourcingAnalyzer->hotSpotMap());
+        $this->assertCount(1, $eventSourcingAnalyzer->featureMap());
+        $this->assertCount(1, $eventSourcingAnalyzer->featureConnectionMap());
+        $this->assertCount(0, $eventSourcingAnalyzer->boundedContextMap());
+        $this->assertAnalysisAddBuilding($eventSourcingAnalyzer, 'buTwEKKNLBBo6WAERYN1Gn', false);
+
+        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'building_user.json'));
+        $eventSourcingAnalyzer->analyse($node);
+
+        $this->assertCount(2, $eventSourcingAnalyzer->commandMap());
+        $this->assertCount(1, $eventSourcingAnalyzer->aggregateMap());
+        $this->assertCount(2, $eventSourcingAnalyzer->eventMap());
+        $this->assertCount(2, $eventSourcingAnalyzer->aggregateConnectionMap());
+        $this->assertCount(0, $eventSourcingAnalyzer->documentMap());
+        $this->assertCount(0, $eventSourcingAnalyzer->policyMap());
+        $this->assertCount(0, $eventSourcingAnalyzer->uiMap());
+        $this->assertCount(0, $eventSourcingAnalyzer->externalSystemMap());
+        $this->assertCount(0, $eventSourcingAnalyzer->hotSpotMap());
+        $this->assertCount(1, $eventSourcingAnalyzer->featureMap());
+        $this->assertCount(1, $eventSourcingAnalyzer->featureConnectionMap());
+        $this->assertCount(0, $eventSourcingAnalyzer->boundedContextMap());
+        $this->assertAnalysisAddBuilding($eventSourcingAnalyzer, 'eiaS8gtsBemMReTNbeNRXj', false);
+        $this->assertAnalysisBuildingUser($eventSourcingAnalyzer);
+
+        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'building_added.json'));
+        $eventSourcingAnalyzer->analyse($node);
+        $this->assertAnalysisAddBuilding($eventSourcingAnalyzer, 'buTwEKKNLBBo6WAERYN1Gn', true);
+        $this->assertAnalysisBuildingUser($eventSourcingAnalyzer);
+        $this->assertAnalysisBuilding($eventSourcingAnalyzer, '4gYkBjXufnkWMN5ybfBvPq');
+
+        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'building.json'));
+        $eventSourcingAnalyzer->analyse($node);
+
+        $this->assertCount(2, $eventSourcingAnalyzer->commandMap());
+        $this->assertCount(1, $eventSourcingAnalyzer->aggregateMap());
+        $this->assertCount(3, $eventSourcingAnalyzer->eventMap());
+        $this->assertCount(2, $eventSourcingAnalyzer->aggregateConnectionMap());
+        $this->assertCount(1, $eventSourcingAnalyzer->documentMap());
+        $this->assertCount(0, $eventSourcingAnalyzer->policyMap());
+        $this->assertCount(0, $eventSourcingAnalyzer->uiMap());
+        $this->assertCount(0, $eventSourcingAnalyzer->externalSystemMap());
+        $this->assertCount(0, $eventSourcingAnalyzer->hotSpotMap());
+        $this->assertCount(1, $eventSourcingAnalyzer->featureMap());
+        $this->assertCount(1, $eventSourcingAnalyzer->featureConnectionMap());
+        $this->assertCount(0, $eventSourcingAnalyzer->boundedContextMap());
+        $this->assertAnalysisAddBuilding($eventSourcingAnalyzer, 'buTwEKKNLBBo6WAERYN1Gn', true);
+        $this->assertAnalysisBuildingUser($eventSourcingAnalyzer);
+        $this->assertAnalysisBuilding($eventSourcingAnalyzer, '4gYkBjXufnkWMN5ybfBvPq');
+
+        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'feature_building.json'));
+        $eventSourcingAnalyzer->analyse($node);
+
+        $this->assertCount(3, $eventSourcingAnalyzer->commandMap());
+        $this->assertCount(1, $eventSourcingAnalyzer->aggregateMap());
+        $this->assertCount(4, $eventSourcingAnalyzer->eventMap());
+        $this->assertCount(3, $eventSourcingAnalyzer->aggregateConnectionMap());
+        $this->assertCount(2, $eventSourcingAnalyzer->documentMap());
+        $this->assertCount(0, $eventSourcingAnalyzer->policyMap());
+        $this->assertCount(0, $eventSourcingAnalyzer->uiMap());
+        $this->assertCount(0, $eventSourcingAnalyzer->externalSystemMap());
+        $this->assertCount(0, $eventSourcingAnalyzer->hotSpotMap());
+        $this->assertCount(1, $eventSourcingAnalyzer->featureMap());
+        $this->assertCount(1, $eventSourcingAnalyzer->featureConnectionMap());
+        $this->assertCount(0, $eventSourcingAnalyzer->boundedContextMap());
+        $this->assertAnalysisAddBuilding($eventSourcingAnalyzer, 'jKrpwfkdZnT5xMRKMYrgTF', true);
+        $this->assertAnalysisBuildingUser($eventSourcingAnalyzer);
+        $this->assertAnalysisBuilding($eventSourcingAnalyzer, 'f9iDWVAz8qT4j37oNzoU1p');
+        $this->analyzeFeatureBuilding($eventSourcingAnalyzer);
+    }
+
+    private function assertAnalysisAddBuilding(
+        EventSourcingAnalyzer $eventSourcingAnalyzer,
+        string $aggregateId,
+        bool $aggregateConnectionMapOfCommandAddBuildingWithEvent
+    ): void {
+        $commandMap = $eventSourcingAnalyzer->commandMap();
+        $aggregateMap = $eventSourcingAnalyzer->aggregateMap();
+        $aggregateConnectionMap = $eventSourcingAnalyzer->aggregateConnectionMap();
+
+        // commands
+        $command = $commandMap->current();
+        $this->assertCommandAddBuilding($command, '9bJ5Y7yuBcfWyei7i2ZSDC');
+        $commandAddBuildingObjectHash = \spl_object_hash($command);
+
+        // aggregates
+        $aggregates = $aggregateMap->current();
+        $this->assertAggregateBuilding($aggregates, $aggregateId);
+
+        // aggregate connections
+        $aggregateConnection = $aggregateConnectionMap->current();
+        $this->assertAggregateConnectionMapOfCommandAddBuilding($aggregateConnection, $aggregateConnectionMapOfCommandAddBuildingWithEvent);
+        $aggregateConnectionCommandAddBuildingObjectHash = \spl_object_hash($aggregateConnection->commandMap()->current());
+
+        $this->assertSame($commandAddBuildingObjectHash, $aggregateConnectionCommandAddBuildingObjectHash);
+    }
+
+    private function assertAnalysisBuildingUser(EventSourcingAnalyzer $eventSourcingAnalyzer): void
+    {
+        $commandMap = $eventSourcingAnalyzer->commandMap();
+        $aggregateConnectionMap = $eventSourcingAnalyzer->aggregateConnectionMap();
+        $eventMap = $eventSourcingAnalyzer->eventMap();
+
+        // commands
+        $commandMap->next();
+        $command = $commandMap->current();
+        $this->assertCommandCheckInUser($command);
+        $commandCheckInUserObjectHash = \spl_object_hash($command);
+
+        // events
+        $eventMap->rewind();
+        $event = $eventMap->current();
+        $this->assertEventUserCheckedIn($event);
+
+        $eventMap->next();
+        $event = $eventMap->current();
+        $this->assertEventDoubleCheckInDetected($event);
+
+        // aggregate connections
+        $aggregateConnectionMap->next();
+        $aggregateConnection = $aggregateConnectionMap->current();
+        $this->assertAggregateConnectionMapOfCommandCheckInUser($aggregateConnection);
+        $aggregateConnectionCommandCheckInUserObjectHash = \spl_object_hash($aggregateConnection->commandMap()->current());
+        $this->assertSame($commandCheckInUserObjectHash, $aggregateConnectionCommandCheckInUserObjectHash);
+    }
+
+    private function assertAnalysisBuilding(
+        EventSourcingAnalyzer $eventSourcingAnalyzer,
+        string $id
+    ): void {
+        $eventMap = $eventSourcingAnalyzer->eventMap();
+        $documentMap = $eventSourcingAnalyzer->documentMap();
+
+        // events
+        $eventMap->next();
+        $event = $eventMap->current();
+        $this->assertEventBuildingAdded($event);
+
+        // documents
+        $documentMap->rewind();
+        $document = $documentMap->current();
+        $this->assertDocumentBuilding($document, $id);
+    }
+
+    private function analyzeFeatureBuilding(EventSourcingAnalyzer $eventSourcingAnalyzer): void
+    {
+        $commandMap = $eventSourcingAnalyzer->commandMap();
+        $aggregateConnectionMap = $eventSourcingAnalyzer->aggregateConnectionMap();
+        $eventMap = $eventSourcingAnalyzer->eventMap();
+        $documentMap = $eventSourcingAnalyzer->documentMap();
+
+        // commands
+        $commandMap->next();
+        $command = $commandMap->current();
+        $this->assertCommandCheckOutUser($command);
+        $commandCheckOutUserObjectHash = \spl_object_hash($command);
+
+        // events
+        $eventMap->next();
+        $event = $eventMap->current();
+        $this->assertEventUserCheckedOut($event);
+
+        // aggregate connections
+        $aggregateConnectionMap->next();
+        $aggregateConnection = $aggregateConnectionMap->current();
+        $this->assertAggregateConnectionMapOfCommandCheckOutUser($aggregateConnection);
+        $aggregateConnectionCommandCheckOutUserObjectHash = \spl_object_hash($aggregateConnection->commandMap()->current());
+        $this->assertSame($commandCheckOutUserObjectHash, $aggregateConnectionCommandCheckOutUserObjectHash);
+
+        // documents
+        $documentMap->next();
+        $document = $documentMap->current();
+        $this->assertDocumentUsersInBuilding($document, 't4mMTjg462VRvMW1L6nSGB');
+    }
+
     private function assertFeatureCommandMap(VertexMap $commandMap): void
     {
         $this->assertCount(3, $commandMap);
 
         $command = $commandMap->current();
-        $this->assertCommandAddBuilding($command);
+        $this->assertCommandAddBuilding($command, '9bJ5Y7yuBcfWyei7i2ZSDC');
 
         $commandMap->next();
         $command = $commandMap->current();
@@ -343,9 +579,9 @@ final class EventSourcingAnalyzerTest extends TestCase
         $this->assertSame('Building ', $aggregate->label());
     }
 
-    private function assertCommandAddBuilding(CommandType $command): void
+    private function assertCommandAddBuilding(CommandType $command, string $id): void
     {
-        $this->assertSame('9bJ5Y7yuBcfWyei7i2ZSDC', $command->id());
+        $this->assertSame($id, $command->id());
         $this->assertSame('Add Building', $command->name());
     }
 
@@ -361,6 +597,13 @@ final class EventSourcingAnalyzerTest extends TestCase
         $this->assertSame('aKvhibi95v18MKjNjb6tL3', $command->id());
         $this->assertSame('Check In User', $command->name());
         $this->assertSame('Check In User', \trim($command->label()));
+    }
+
+    private function assertCommandCheckOutUser(CommandType $command): void
+    {
+        $this->assertSame('dkNTGinM6VY1Qu8zyGURU1', $command->id());
+        $this->assertSame('Check Out User', $command->name());
+        $this->assertSame('Check Out User', \trim($command->label()));
     }
 
     private function assertEventUserCheckedIn(EventType $event): void
@@ -389,5 +632,19 @@ final class EventSourcingAnalyzerTest extends TestCase
         $this->assertSame('a4HLmzMb2g2MVQWXy4BKN1', $event->id());
         $this->assertSame('Name', $event->name());
         $this->assertSame('Name', $event->label());
+    }
+
+    private function assertDocumentBuilding(DocumentType $event, string $id): void
+    {
+        $this->assertSame($id, $event->id());
+        $this->assertSame('Building', $event->name());
+        $this->assertSame('Building ', $event->label());
+    }
+
+    private function assertDocumentUsersInBuilding(DocumentType $event, string $id): void
+    {
+        $this->assertSame($id, $event->id());
+        $this->assertSame('Users In Building', $event->name());
+        $this->assertSame('Users In Building ', $event->label());
     }
 }
