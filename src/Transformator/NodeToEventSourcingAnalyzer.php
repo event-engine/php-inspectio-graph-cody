@@ -12,6 +12,7 @@ namespace EventEngine\InspectioGraphCody\Transformator;
 
 use EventEngine\InspectioGraphCody\Constraint\Exception\RuntimeException;
 use EventEngine\InspectioGraphCody\EventSourcingAnalyzer;
+use EventEngine\InspectioGraphCody\EventSourcingGraph;
 use EventEngine\InspectioGraphCody\Node;
 use EventEngine\InspectioGraphCody\Validator;
 use OpenCodeModeling\CodeGenerator\Workflow;
@@ -48,8 +49,11 @@ final class NodeToEventSourcingAnalyzer
         if (false === $this->validator->isValid($node)) {
             throw new RuntimeException('Graph is invalid.');
         }
+        // TODO needs EventSourcingAnalyzer as input argument
+        $analyzer = new EventSourcingAnalyzer(new EventSourcingGraph($this->filterName, $this->metadataFactory));
+        $analyzer->analyse($node);
 
-        return new EventSourcingAnalyzer($node, $this->filterName, $this->metadataFactory);
+        return $analyzer;
     }
 
     public static function workflowComponentDescription(
