@@ -10,28 +10,30 @@ declare(strict_types=1);
 
 namespace EventEngine\InspectioGraphCody;
 
-use EventEngine\InspectioGraph\AggregateConnection;
-use EventEngine\InspectioGraph\AggregateConnectionMap;
+use EventEngine\InspectioGraph;
+use EventEngine\InspectioGraph\Connection\AggregateConnectionAnalyzer;
+use EventEngine\InspectioGraph\Connection\AggregateConnectionMap;
+use EventEngine\InspectioGraph\Connection\FeatureConnectionAnalyzer;
+use EventEngine\InspectioGraph\Connection\FeatureConnectionMap;
 use EventEngine\InspectioGraph\VertexMap;
 use EventEngine\InspectioGraph\VertexType;
-use EventEngine\InspectioGraphCody\Exception\RuntimeException;
 
-final class EventSourcingAnalyzer implements \EventEngine\InspectioGraph\EventSourcingAnalyzer
+final class EventSourcingAnalyzer implements InspectioGraph\EventSourcingAnalyzer, AggregateConnectionAnalyzer, FeatureConnectionAnalyzer
 {
-    /**
-     * @var Node
-     **/
-    private $node;
-
-    /**
-     * @var callable
-     **/
-    private $filterName;
-
     /**
      * @var VertexMap
      */
     private $commandMap;
+
+    /**
+     * @var VertexMap
+     */
+    private $aggregateMap;
+
+    /**
+     * @var AggregateConnectionMap
+     */
+    private $aggregateConnectionMap;
 
     /**
      * @var VertexMap
@@ -44,222 +46,145 @@ final class EventSourcingAnalyzer implements \EventEngine\InspectioGraph\EventSo
     private $documentMap;
 
     /**
-     * @var AggregateConnectionMap
+     * @var VertexMap
      */
-    private $aggregateConnectionMap;
+    private $policyMap;
 
     /**
-     * @var callable
+     * @var VertexMap
      */
-    private $metadataFactory;
-
-    public function __construct(
-        Node $node,
-        callable $filterName,
-        ?callable $metadataFactory = null
-    ) {
-        $this->node = $node;
-        $this->filterName = $filterName;
-        $this->metadataFactory = $metadataFactory;
-    }
+    private $uiMap;
 
     /**
-     * @param string $type
-     * @return Node[]
+     * @var VertexMap
      */
-    private function filterVerticesByType(string $type): array
+    private $externalSystemMap;
+
+    /**
+     * @var VertexMap
+     */
+    private $hotSpotMap;
+
+    /**
+     * @var VertexMap
+     */
+    private $featureMap;
+
+    /**
+     * @var FeatureConnectionMap
+     */
+    private $featureConnectionMap;
+
+    /**
+     * @var VertexMap
+     */
+    private $boundedContextMap;
+
+    /**
+     * @var EventSourcingGraph
+     */
+    private $graph;
+
+    public function __construct(EventSourcingGraph $graph)
     {
-        $vertices = [];
+        $this->graph = $graph;
 
-        if ($this->node->type() === $type) {
-            $vertices[] = $this->node;
-        }
-
-        foreach ($this->node->sources() as $source) {
-            if ($source->type() === $type) {
-                $vertices[] = $source;
-            }
-        }
-
-        foreach ($this->node->targets() as $target) {
-            if ($target->type() === $type) {
-                $vertices[] = $target;
-            }
-        }
-
-        return $vertices;
-    }
-
-    /**
-     * @param Node $node
-     * @return Node[]
-     */
-    private function filterCommandsWithConnectionOf(Node $node): array
-    {
-        $vertices = [];
-
-        switch ($this->node->type()) {
-            case VertexType::TYPE_AGGREGATE:
-                foreach ($this->node->sources() as $source) {
-                    if ($source->type() === VertexType::TYPE_COMMAND) {
-                        $vertices[] = $source;
-                    }
-                }
-                break;
-            case VertexType::TYPE_COMMAND:
-                foreach ($this->node->targets() as $target) {
-                    if ($this->areNodesEqual($target, $node)) {
-                        $vertices[] = $this->node;
-                    }
-                }
-                break;
-            default:
-                break;
-        }
-
-        return $vertices;
+        $this->commandMap = VertexMap::emptyMap();
+        $this->aggregateMap = VertexMap::emptyMap();
+        $this->eventMap = VertexMap::emptyMap();
+        $this->aggregateConnectionMap = AggregateConnectionMap::emptyMap();
+        $this->documentMap = VertexMap::emptyMap();
+        $this->policyMap = VertexMap::emptyMap();
+        $this->uiMap = VertexMap::emptyMap();
+        $this->externalSystemMap = VertexMap::emptyMap();
+        $this->hotSpotMap = VertexMap::emptyMap();
+        $this->featureMap = VertexMap::emptyMap();
+        $this->featureConnectionMap = FeatureConnectionMap::emptyMap();
+        $this->boundedContextMap = VertexMap::emptyMap();
     }
 
     /**
      * @param Node $node
-     * @return Node[]
+     * @return VertexType The vertex type of the provided node from the corresponding map e.g. command map
      */
-    private function filterEventsWithConnectionOf(Node $node): array
+    public function analyse(Node $node): VertexType
     {
-        $vertices = [];
+        // all maps can be analyzed in parallel
+        $this->commandMap = $this->graph->analyseMap($node, $this->commandMap, VertexType::TYPE_COMMAND);
+        $this->aggregateMap = $this->graph->analyseMap($node, $this->aggregateMap, VertexType::TYPE_AGGREGATE);
+        $this->eventMap = $this->graph->analyseMap($node, $this->eventMap, VertexType::TYPE_EVENT);
+        $this->documentMap = $this->graph->analyseMap($node, $this->documentMap, VertexType::TYPE_DOCUMENT);
+        $this->policyMap = $this->graph->analyseMap($node, $this->policyMap, VertexType::TYPE_POLICY);
+        $this->uiMap = $this->graph->analyseMap($node, $this->uiMap, VertexType::TYPE_UI);
+        $this->externalSystemMap = $this->graph->analyseMap($node, $this->externalSystemMap, VertexType::TYPE_EXTERNAL_SYSTEM);
+        $this->hotSpotMap = $this->graph->analyseMap($node, $this->hotSpotMap, VertexType::TYPE_HOT_SPOT);
+        $this->featureMap = $this->graph->analyseMap($node, $this->featureMap, VertexType::TYPE_FEATURE);
+        $this->boundedContextMap = $this->graph->analyseMap($node, $this->boundedContextMap, VertexType::TYPE_BOUNDED_CONTEXT);
 
-        switch ($this->node->type()) {
-            case VertexType::TYPE_AGGREGATE:
-                foreach ($this->node->targets() as $target) {
-                    if ($target->type() === VertexType::TYPE_EVENT) {
-                        $vertices[] = $target;
-                    }
-                }
-                break;
-            case VertexType::TYPE_EVENT:
-                foreach ($this->node->sources() as $source) {
-                    if ($this->areNodesEqual($source, $node)) {
-                        $vertices[] = $this->node;
-                    }
-                }
-                foreach ($this->node->targets() as $target) {
-                    if ($this->areNodesEqual($target, $node)) {
-                        $vertices[] = $this->node;
-                    }
-                }
-                break;
-            default:
-                break;
-        }
+        // all connection maps can be analyzed in parallel
+        $this->aggregateConnectionMap = $this->graph->analyseAggregateConnectionMap($node, $this, $this->aggregateConnectionMap);
+        $this->featureConnectionMap = $this->graph->analyseFeatureConnectionMap($node, $this, $this->featureConnectionMap);
 
-        return $vertices;
+        return $this->graph->vertexOfNode($node, $this);
     }
 
     public function commandMap(): VertexMap
     {
-        if (null === $this->commandMap) {
-            $this->commandMap = VertexMap::fromVertices(...$this->vertexMapByType(VertexType::TYPE_COMMAND));
-        }
-
         return $this->commandMap;
     }
 
     public function eventMap(): VertexMap
     {
-        if (null === $this->eventMap) {
-            $this->eventMap = VertexMap::fromVertices(...$this->vertexMapByType(VertexType::TYPE_EVENT));
-        }
-
         return $this->eventMap;
     }
 
-    public function aggregateMap(): AggregateConnectionMap
+    public function aggregateMap(): VertexMap
     {
-        if (null === $this->aggregateConnectionMap) {
-            $this->aggregateConnectionMap = AggregateConnectionMap::emptyMap();
+        return $this->aggregateMap;
+    }
 
-            $commandMap = $this->commandMap();
-            $eventMap = $this->eventMap();
-
-            /** @var Node $aggregateVertex */
-            foreach ($this->filterVerticesByType(VertexType::TYPE_AGGREGATE) as $aggregateVertex) {
-                $aggregate = Vertex::fromCodyNode($aggregateVertex, $this->filterName, $this->metadataFactory);
-                $name = $aggregate->name();
-
-                if (true === $this->aggregateConnectionMap->has($name)) {
-                    continue;
-                }
-                // @phpstan-ignore-next-line
-                $aggregateConnection = new AggregateConnection($aggregate);
-
-                $this->aggregateConnectionMap = $this->aggregateConnectionMap->with($name, $aggregateConnection);
-                $commandVertices = $this->filterCommandsWithConnectionOf($aggregateVertex);
-                $eventVertices = $this->filterEventsWithConnectionOf($aggregateVertex);
-
-                $countCommandVertices = \count($commandVertices);
-
-                if ($countCommandVertices > 1) {
-                    throw new RuntimeException(
-                        \sprintf('Multiple command connections to aggregate "%s" found. Can not handle it.', $name)
-                    );
-                }
-
-                if ($countCommandVertices === 1) {
-                    $command = Vertex::fromCodyNode(\current($commandVertices), $this->filterName);
-
-                    if (true === $commandMap->has($command->name())) {
-                        $events = [];
-
-                        foreach ($eventVertices as $eventVertex) {
-                            $event = Vertex::fromCodyNode($eventVertex, $this->filterName);
-
-                            if ($eventMap->has($event->name())) {
-                                $events[] = $eventMap->vertex($event->name());
-                            }
-                        }
-                        // @phpstan-ignore-next-line
-                        $aggregateConnection = $aggregateConnection->withCommandEvents($commandMap->vertex($command->name()), ...$events);
-                    }
-                } elseif (\count($eventVertices) > 0) {
-                    foreach ($eventVertices as $eventVertex) {
-                        $events = [];
-                        $event = Vertex::fromCodyNode($eventVertex, $this->filterName);
-
-                        if ($eventMap->has($event->name())) {
-                            $events[] = $eventMap->vertex($event->name());
-                        }
-                    }
-                    $aggregateConnection = $aggregateConnection->withEvents(...$events);
-                }
-                $this->aggregateConnectionMap = $this->aggregateConnectionMap->with($name, $aggregateConnection);
-            }
-        }
-
+    public function aggregateConnectionMap(): AggregateConnectionMap
+    {
         return $this->aggregateConnectionMap;
     }
 
     public function documentMap(): VertexMap
     {
-        if (null === $this->documentMap) {
-            $this->documentMap = VertexMap::fromVertices(...$this->vertexMapByType(VertexType::TYPE_DOCUMENT));
-        }
-
         return $this->documentMap;
     }
 
-    private function vertexMapByType(string $type): array
+    public function policyMap(): VertexMap
     {
-        return \array_map(
-            function (Node $vertex) {
-                return Vertex::fromCodyNode($vertex, $this->filterName, $this->metadataFactory);
-            },
-            $this->filterVerticesByType($type)
-        );
+        return $this->policyMap;
     }
 
-    private function areNodesEqual(Node $a, Node $b): bool
+    public function uiMap(): VertexMap
     {
-        return $a->name() === $b->name()
-            && $a->type() === $b->type();
+        return $this->uiMap;
+    }
+
+    public function featureMap(): VertexMap
+    {
+        return $this->featureMap;
+    }
+
+    public function featureConnectionMap(): FeatureConnectionMap
+    {
+        return $this->featureConnectionMap;
+    }
+
+    public function boundedContextMap(): VertexMap
+    {
+        return $this->boundedContextMap;
+    }
+
+    public function externalSystemMap(): VertexMap
+    {
+        return $this->externalSystemMap;
+    }
+
+    public function hotSpotMap(): VertexMap
+    {
+        return $this->hotSpotMap;
     }
 }

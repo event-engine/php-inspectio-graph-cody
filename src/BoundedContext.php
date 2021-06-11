@@ -10,12 +10,12 @@ declare(strict_types=1);
 
 namespace EventEngine\InspectioGraphCody;
 
-use EventEngine\InspectioGraph\DocumentType;
+use EventEngine\InspectioGraph\BoundedContextType;
 use EventEngine\InspectioGraph\Metadata;
 
-final class Document extends Vertex implements DocumentType
+final class BoundedContext extends Vertex implements BoundedContextType
 {
-    protected const TYPE = self::TYPE_DOCUMENT;
+    protected const TYPE = self::TYPE_BOUNDED_CONTEXT;
 
     /**
      * @var Metadata\Metadata|null

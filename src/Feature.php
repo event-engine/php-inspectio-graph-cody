@@ -10,12 +10,12 @@ declare(strict_types=1);
 
 namespace EventEngine\InspectioGraphCody;
 
-use EventEngine\InspectioGraph\DocumentType;
+use EventEngine\InspectioGraph\FeatureType;
 use EventEngine\InspectioGraph\Metadata;
 
-final class Document extends Vertex implements DocumentType
+final class Feature extends Vertex implements FeatureType
 {
-    protected const TYPE = self::TYPE_DOCUMENT;
+    protected const TYPE = self::TYPE_FEATURE;
 
     /**
      * @var Metadata\Metadata|null
