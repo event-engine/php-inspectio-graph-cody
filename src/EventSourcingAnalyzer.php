@@ -91,6 +91,11 @@ final class EventSourcingAnalyzer implements InspectioGraph\EventSourcingAnalyze
         return $this->identityConnectionMap->filterByType(VertexType::TYPE_HOT_SPOT);
     }
 
+    public function graph(): VertexConnectionMap
+    {
+        return $this->identityConnectionMap;
+    }
+
     public function has(string $id): bool
     {
         return $this->identityConnectionMap->has($id);
