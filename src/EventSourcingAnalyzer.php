@@ -10,181 +10,127 @@ declare(strict_types=1);
 
 namespace EventEngine\InspectioGraphCody;
 
+use Countable;
 use EventEngine\InspectioGraph;
-use EventEngine\InspectioGraph\Connection\AggregateConnectionAnalyzer;
-use EventEngine\InspectioGraph\Connection\AggregateConnectionMap;
-use EventEngine\InspectioGraph\Connection\FeatureConnectionAnalyzer;
-use EventEngine\InspectioGraph\Connection\FeatureConnectionMap;
-use EventEngine\InspectioGraph\VertexMap;
+use EventEngine\InspectioGraph\VertexConnection;
+use EventEngine\InspectioGraph\VertexConnectionMap;
 use EventEngine\InspectioGraph\VertexType;
+use Iterator;
 
-final class EventSourcingAnalyzer implements InspectioGraph\EventSourcingAnalyzer, AggregateConnectionAnalyzer, FeatureConnectionAnalyzer
+final class EventSourcingAnalyzer implements InspectioGraph\EventSourcingAnalyzer, Countable, Iterator
 {
-    /**
-     * @var VertexMap
-     */
-    private $commandMap;
+    use InspectioGraph\EventSourcingGraph;
 
-    /**
-     * @var VertexMap
-     */
-    private $aggregateMap;
-
-    /**
-     * @var AggregateConnectionMap
-     */
-    private $aggregateConnectionMap;
-
-    /**
-     * @var VertexMap
-     */
-    private $eventMap;
-
-    /**
-     * @var VertexMap
-     */
-    private $documentMap;
-
-    /**
-     * @var VertexMap
-     */
-    private $policyMap;
-
-    /**
-     * @var VertexMap
-     */
-    private $uiMap;
-
-    /**
-     * @var VertexMap
-     */
-    private $externalSystemMap;
-
-    /**
-     * @var VertexMap
-     */
-    private $hotSpotMap;
-
-    /**
-     * @var VertexMap
-     */
-    private $featureMap;
-
-    /**
-     * @var FeatureConnectionMap
-     */
-    private $featureConnectionMap;
-
-    /**
-     * @var VertexMap
-     */
-    private $boundedContextMap;
-
-    /**
-     * @var EventSourcingGraph
-     */
-    private $graph;
+    private VertexConnectionMap $identityConnectionMap;
+    private EventSourcingGraph $graph;
 
     public function __construct(EventSourcingGraph $graph)
     {
         $this->graph = $graph;
-
-        $this->commandMap = VertexMap::emptyMap();
-        $this->aggregateMap = VertexMap::emptyMap();
-        $this->eventMap = VertexMap::emptyMap();
-        $this->aggregateConnectionMap = AggregateConnectionMap::emptyMap();
-        $this->documentMap = VertexMap::emptyMap();
-        $this->policyMap = VertexMap::emptyMap();
-        $this->uiMap = VertexMap::emptyMap();
-        $this->externalSystemMap = VertexMap::emptyMap();
-        $this->hotSpotMap = VertexMap::emptyMap();
-        $this->featureMap = VertexMap::emptyMap();
-        $this->featureConnectionMap = FeatureConnectionMap::emptyMap();
-        $this->boundedContextMap = VertexMap::emptyMap();
+        $this->identityConnectionMap = VertexConnectionMap::emptyMap();
     }
 
     /**
      * @param Node $node
-     * @return VertexType The vertex type of the provided node from the corresponding map e.g. command map
+     * @return InspectioGraph\VertexConnection The vertex with it's connections of provided node
      */
-    public function analyse(Node $node): VertexType
+    public function analyse(Node $node): InspectioGraph\VertexConnection
     {
-        // all maps can be analyzed in parallel
-        $this->commandMap = $this->graph->analyseMap($node, $this->commandMap, VertexType::TYPE_COMMAND);
-        $this->aggregateMap = $this->graph->analyseMap($node, $this->aggregateMap, VertexType::TYPE_AGGREGATE);
-        $this->eventMap = $this->graph->analyseMap($node, $this->eventMap, VertexType::TYPE_EVENT);
-        $this->documentMap = $this->graph->analyseMap($node, $this->documentMap, VertexType::TYPE_DOCUMENT);
-        $this->policyMap = $this->graph->analyseMap($node, $this->policyMap, VertexType::TYPE_POLICY);
-        $this->uiMap = $this->graph->analyseMap($node, $this->uiMap, VertexType::TYPE_UI);
-        $this->externalSystemMap = $this->graph->analyseMap($node, $this->externalSystemMap, VertexType::TYPE_EXTERNAL_SYSTEM);
-        $this->hotSpotMap = $this->graph->analyseMap($node, $this->hotSpotMap, VertexType::TYPE_HOT_SPOT);
-        $this->featureMap = $this->graph->analyseMap($node, $this->featureMap, VertexType::TYPE_FEATURE);
-        $this->boundedContextMap = $this->graph->analyseMap($node, $this->boundedContextMap, VertexType::TYPE_BOUNDED_CONTEXT);
+        $this->identityConnectionMap = $this->graph->analyseConnections($node, $this->identityConnectionMap);
 
-        // all connection maps can be analyzed in parallel
-        $this->aggregateConnectionMap = $this->graph->analyseAggregateConnectionMap($node, $this, $this->aggregateConnectionMap);
-        $this->featureConnectionMap = $this->graph->analyseFeatureConnectionMap($node, $this, $this->featureConnectionMap);
-
-        return $this->graph->vertexOfNode($node, $this);
+        return $this->identityConnectionMap->connection($node->id());
     }
 
-    public function commandMap(): VertexMap
+    public function commandMap(): VertexConnectionMap
     {
-        return $this->commandMap;
+        return $this->identityConnectionMap->filterByType(VertexType::TYPE_COMMAND);
     }
 
-    public function eventMap(): VertexMap
+    public function eventMap(): VertexConnectionMap
     {
-        return $this->eventMap;
+        return $this->identityConnectionMap->filterByType(VertexType::TYPE_EVENT);
     }
 
-    public function aggregateMap(): VertexMap
+    public function aggregateMap(): VertexConnectionMap
     {
-        return $this->aggregateMap;
+        return $this->identityConnectionMap->filterByType(VertexType::TYPE_AGGREGATE);
     }
 
-    public function aggregateConnectionMap(): AggregateConnectionMap
+    public function documentMap(): VertexConnectionMap
     {
-        return $this->aggregateConnectionMap;
+        return $this->identityConnectionMap->filterByType(VertexType::TYPE_DOCUMENT);
     }
 
-    public function documentMap(): VertexMap
+    public function policyMap(): VertexConnectionMap
     {
-        return $this->documentMap;
+        return $this->identityConnectionMap->filterByType(VertexType::TYPE_POLICY);
     }
 
-    public function policyMap(): VertexMap
+    public function uiMap(): VertexConnectionMap
     {
-        return $this->policyMap;
+        return $this->identityConnectionMap->filterByType(VertexType::TYPE_UI);
     }
 
-    public function uiMap(): VertexMap
+    public function featureMap(): VertexConnectionMap
     {
-        return $this->uiMap;
+        return $this->identityConnectionMap->filterByType(VertexType::TYPE_FEATURE);
     }
 
-    public function featureMap(): VertexMap
+    public function boundedContextMap(): VertexConnectionMap
     {
-        return $this->featureMap;
+        return $this->identityConnectionMap->filterByType(VertexType::TYPE_BOUNDED_CONTEXT);
     }
 
-    public function featureConnectionMap(): FeatureConnectionMap
+    public function externalSystemMap(): VertexConnectionMap
     {
-        return $this->featureConnectionMap;
+        return $this->identityConnectionMap->filterByType(VertexType::TYPE_EXTERNAL_SYSTEM);
     }
 
-    public function boundedContextMap(): VertexMap
+    public function hotSpotMap(): VertexConnectionMap
     {
-        return $this->boundedContextMap;
+        return $this->identityConnectionMap->filterByType(VertexType::TYPE_HOT_SPOT);
     }
 
-    public function externalSystemMap(): VertexMap
+    public function has(string $id): bool
     {
-        return $this->externalSystemMap;
+        return $this->identityConnectionMap->has($id);
     }
 
-    public function hotSpotMap(): VertexMap
+    public function connection(string $id): VertexConnection
     {
-        return $this->hotSpotMap;
+        return $this->identityConnectionMap->connection($id);
+    }
+
+    public function count(): int
+    {
+        return \count($this->identityConnectionMap);
+    }
+
+    public function rewind(): void
+    {
+        $this->identityConnectionMap->rewind();
+    }
+
+    public function key(): string
+    {
+        return $this->identityConnectionMap->key();
+    }
+
+    public function next(): void
+    {
+        $this->identityConnectionMap->next();
+    }
+
+    public function valid(): bool
+    {
+        return $this->identityConnectionMap->valid();
+    }
+
+    /**
+     * @return VertexConnection|false|mixed
+     */
+    public function current()
+    {
+        return $this->identityConnectionMap->current();
     }
 }
