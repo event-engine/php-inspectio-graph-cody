@@ -143,31 +143,37 @@ abstract class Vertex implements VertexType
         return $this->type;
     }
 
-    /**
-     * Raw vertex label
-     *
-     * @return string
-     */
     public function label(): string
     {
         return $this->label;
     }
 
-    /**
-     * Filtered label for name
-     *
-     * @return string
-     */
     public function name(): string
     {
         return $this->name;
     }
 
-    /**
-     * @return string
-     */
-    public function metadata(): string
+    public function metadata(): ?string
     {
         return $this->metadata;
+    }
+
+    public function merge(VertexType $vertex): void
+    {
+        if ($vertex->id() !== $this->id()) {
+            throw new RuntimeException(
+                \sprintf('Can not merge vertex due different ids. Id is "%s" but got "%s"', $this->id, $vertex->id())
+            );
+        }
+        if ($vertex->type() !== $this->type()) {
+            throw new RuntimeException(
+                \sprintf('Can not merge vertex due different types. Type is "%s" but got "%s"', $this->type, $vertex->type())
+            );
+        }
+
+        $this->metadataInstance = $vertex->metadataInstance();
+        $this->metadata = $vertex->metadata();
+        $this->name = $vertex->name();
+        $this->label = $vertex->label();
     }
 }

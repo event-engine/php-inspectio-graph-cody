@@ -3,4 +3,3 @@ parameters:
   paths:
     - src/
   ignoreErrors:
-    - '#.*expects EventEngine\\InspectioGraph\\[a-zA-Z0-9\\_]+\, EventEngine\\InspectioGraph\\VertexType given.#'
