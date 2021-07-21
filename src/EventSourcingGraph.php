@@ -42,7 +42,7 @@ final class EventSourcingGraph
         $identity = Vertex::fromCodyNode($node, $this->filterName, $this->metadataFactory);
 
         foreach ($node->targets() as $target) {
-            if ($target->type() === 'edge') {
+            if (! $this->isTypeSupported($target)) {
                 continue;
             }
             $targetIdentity = Vertex::fromCodyNode($target, $this->filterName, $this->metadataFactory);
@@ -51,7 +51,7 @@ final class EventSourcingGraph
         }
 
         foreach ($node->sources() as $source) {
-            if ($source->type() === 'edge') {
+            if (! $this->isTypeSupported($source)) {
                 continue;
             }
             $sourceIdentity = Vertex::fromCodyNode($source, $this->filterName, $this->metadataFactory);
@@ -60,7 +60,7 @@ final class EventSourcingGraph
         }
 
         foreach ($node->children() as $child) {
-            if ($child->type() === 'edge') {
+            if (! $this->isTypeSupported($child)) {
                 continue;
             }
             $vertexConnectionMap = $this->addParentConnection(
@@ -79,7 +79,7 @@ final class EventSourcingGraph
         InspectioGraph\VertexConnectionMap $vertexConnectionMap
     ): InspectioGraph\VertexConnectionMap {
         if (($parent = $node->parent())
-            && $parent->type() !== 'layer'
+            && $this->isTypeSupported($parent)
         ) {
             $parentIdentity = Vertex::fromCodyNode($parent, $this->filterName, $this->metadataFactory);
             $vertexConnectionMap = $this->addParentConnection($nodeIdentity, $parentIdentity, $vertexConnectionMap);
@@ -96,5 +96,12 @@ final class EventSourcingGraph
         }
 
         return $vertexConnectionMap;
+    }
+
+    private function isTypeSupported(Node $node): bool
+    {
+        $type = $node->type();
+
+        return $type !== 'edge' && $type !== 'image' && $type !== 'layer' && $type !== 'freeText' && $type !== 'text' && $type !== 'icon';
     }
 }
