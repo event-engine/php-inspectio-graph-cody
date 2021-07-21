@@ -72,6 +72,12 @@ abstract class Vertex implements VertexType
             case VertexType::TYPE_POLICY:
                 $class = Policy::class;
                 break;
+            case VertexType::TYPE_HOT_SPOT:
+                $class = HotSpot::class;
+                break;
+            case VertexType::TYPE_ROLE:
+                $class = Role::class;
+                break;
             case VertexType::TYPE_UI:
                 $class = Ui::class;
                 break;
