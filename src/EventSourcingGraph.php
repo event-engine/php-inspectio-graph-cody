@@ -39,6 +39,10 @@ final class EventSourcingGraph
         Node $node,
         InspectioGraph\VertexConnectionMap $vertexConnectionMap
     ): InspectioGraph\VertexConnectionMap {
+        if (! $this->isTypeSupported($node)) {
+            return $vertexConnectionMap;
+        }
+
         $identity = Vertex::fromCodyNode($node, $this->filterName, $this->metadataFactory);
 
         foreach ($node->targets() as $target) {

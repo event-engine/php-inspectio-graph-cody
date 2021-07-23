@@ -32,13 +32,15 @@ final class EventSourcingAnalyzer implements InspectioGraph\EventSourcingAnalyze
 
     /**
      * @param Node $node
-     * @return InspectioGraph\VertexConnection The vertex with it's connections of provided node
+     * @return InspectioGraph\VertexConnection|null The vertex with it's connections of provided node or null if not supported
      */
-    public function analyse(Node $node): InspectioGraph\VertexConnection
+    public function analyse(Node $node): ?InspectioGraph\VertexConnection
     {
         $this->identityConnectionMap = $this->graph->analyseConnections($node, $this->identityConnectionMap);
 
-        return $this->identityConnectionMap->connection($node->id());
+        return $this->identityConnectionMap->has($node->id())
+            ? $this->identityConnectionMap->connection($node->id())
+            : null;
     }
 
     public function commandMap(): VertexConnectionMap
