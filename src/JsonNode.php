@@ -31,6 +31,11 @@ final class JsonNode implements Node
         return new self($data['node']);
     }
 
+    public static function fromArray(array $json): Node
+    {
+        return new self($json);
+    }
+
     private function __construct(array $data)
     {
         $this->node = $data;
