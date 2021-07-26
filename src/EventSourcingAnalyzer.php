@@ -98,6 +98,11 @@ final class EventSourcingAnalyzer implements InspectioGraph\EventSourcingAnalyze
         return $this->identityConnectionMap;
     }
 
+    public function clearGraph(): void
+    {
+        $this->identityConnectionMap = VertexConnectionMap::emptyMap();
+    }
+
     public function has(string $id): bool
     {
         return $this->identityConnectionMap->has($id);
