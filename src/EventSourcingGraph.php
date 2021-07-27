@@ -77,6 +77,19 @@ final class EventSourcingGraph
         return $this->addParent($node, $identity, $vertexConnectionMap);
     }
 
+    public function removeConnection(
+        Node $node,
+        InspectioGraph\VertexConnectionMap $vertexConnectionMap
+    ): InspectioGraph\VertexConnectionMap {
+        if (! $this->isTypeSupported($node)) {
+            return $vertexConnectionMap;
+        }
+
+        $identity = Vertex::fromCodyNode($node, $this->filterName, $this->metadataFactory);
+
+        return $this->removeIdentity($identity, $vertexConnectionMap);
+    }
+
     private function addParent(
         Node $node,
         VertexType $nodeIdentity,

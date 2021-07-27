@@ -43,6 +43,11 @@ final class EventSourcingAnalyzer implements InspectioGraph\EventSourcingAnalyze
             : null;
     }
 
+    public function remove(Node $node): void
+    {
+        $this->identityConnectionMap = $this->graph->removeConnection($node, $this->identityConnectionMap);
+    }
+
     public function commandMap(): VertexConnectionMap
     {
         return $this->identityConnectionMap->filterByType(VertexType::TYPE_COMMAND);

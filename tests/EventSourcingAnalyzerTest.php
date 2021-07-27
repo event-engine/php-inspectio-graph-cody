@@ -54,6 +54,44 @@ final class EventSourcingAnalyzerTest extends TestCase
     /**
      * @test
      */
+    public function it_removes_nodes(): void
+    {
+        $analyzer = new EventSourcingAnalyzer(new EventSourcingGraph($this->filter));
+
+        // order is important for assertions
+        $node = JsonNode::fromJson(\file_get_contents(self::FILES_DIR . 'add_building.json'));
+        $identityConnection = $analyzer->analyse($node);
+
+        $this->assertCount(1, $analyzer->commandMap());
+        $this->assertCount(1, $analyzer->aggregateMap());
+        $this->assertCount(0, $analyzer->eventMap());
+        $this->assertCount(0, $analyzer->documentMap());
+        $this->assertCount(0, $analyzer->policyMap());
+        $this->assertCount(0, $analyzer->uiMap());
+        $this->assertCount(0, $analyzer->externalSystemMap());
+        $this->assertCount(0, $analyzer->hotSpotMap());
+        $this->assertCount(1, $analyzer->featureMap());
+        $this->assertCount(1, $analyzer->boundedContextMap());
+        $this->assertCommandAddBuilding($identityConnection->identity(), self::ID_ADD_BUILDING);
+        $this->assertAnalysisAddBuilding($analyzer, false);
+
+        $analyzer->remove($node);
+
+        $this->assertCount(0, $analyzer->commandMap());
+        $this->assertCount(1, $analyzer->aggregateMap());
+        $this->assertCount(0, $analyzer->eventMap());
+        $this->assertCount(0, $analyzer->documentMap());
+        $this->assertCount(0, $analyzer->policyMap());
+        $this->assertCount(0, $analyzer->uiMap());
+        $this->assertCount(0, $analyzer->externalSystemMap());
+        $this->assertCount(0, $analyzer->hotSpotMap());
+        $this->assertCount(1, $analyzer->featureMap());
+        $this->assertCount(1, $analyzer->boundedContextMap());
+    }
+
+    /**
+     * @test
+     */
     public function it_analysis_nodes(): void
     {
         $analyzer = new EventSourcingAnalyzer(new EventSourcingGraph($this->filter));
