@@ -42,8 +42,11 @@ final class EventSourcingGraph
         if (! $this->isTypeSupported($node)) {
             return $vertexConnectionMap;
         }
+        $resolveMetadataReferences = [];
 
         $identity = Vertex::fromCodyNode($node, $this->filterName, $this->metadataFactory);
+
+        $resolveMetadataReferences[] = $identity;
 
         foreach ($node->targets() as $target) {
             if (! $this->isTypeSupported($target)) {
@@ -52,6 +55,7 @@ final class EventSourcingGraph
             $targetIdentity = Vertex::fromCodyNode($target, $this->filterName, $this->metadataFactory);
             $vertexConnectionMap = $this->addConnection($identity, $targetIdentity, $vertexConnectionMap);
             $vertexConnectionMap = $this->addParent($target, $targetIdentity, $vertexConnectionMap);
+            $resolveMetadataReferences[] = $targetIdentity;
         }
 
         foreach ($node->sources() as $source) {
@@ -61,20 +65,35 @@ final class EventSourcingGraph
             $sourceIdentity = Vertex::fromCodyNode($source, $this->filterName, $this->metadataFactory);
             $vertexConnectionMap = $this->addConnection($sourceIdentity, $identity, $vertexConnectionMap);
             $vertexConnectionMap = $this->addParent($source, $sourceIdentity, $vertexConnectionMap);
+            $resolveMetadataReferences[] = $sourceIdentity;
         }
 
         foreach ($node->children() as $child) {
             if (! $this->isTypeSupported($child)) {
                 continue;
             }
+            $childIdentity = Vertex::fromCodyNode($child, $this->filterName, $this->metadataFactory);
             $vertexConnectionMap = $this->addParentConnection(
-                Vertex::fromCodyNode($child, $this->filterName, $this->metadataFactory),
+                $childIdentity,
                 $identity,
                 $vertexConnectionMap
             );
+            $resolveMetadataReferences[] = $childIdentity;
+        }
+        $vertexConnectionMap = $this->addParent($node, $identity, $vertexConnectionMap);
+
+        if (($parent = $node->parent())
+            && $this->isTypeSupported($parent)
+            && $vertexConnectionMap->has($parent->id())
+        ) {
+            $resolveMetadataReferences[] = $vertexConnectionMap->connection($parent->id())->identity();
         }
 
-        return $this->addParent($node, $identity, $vertexConnectionMap);
+        foreach ($resolveMetadataReferences as $resolveMetadataReference) {
+            $this->resolveReference($resolveMetadataReference, $vertexConnectionMap);
+        }
+
+        return $vertexConnectionMap;
     }
 
     public function removeConnection(
@@ -120,5 +139,14 @@ final class EventSourcingGraph
         $type = $node->type();
 
         return $type !== 'edge' && $type !== 'image' && $type !== 'layer' && $type !== 'freeText' && $type !== 'text' && $type !== 'icon';
+    }
+
+    private function resolveReference(VertexType $vertex, InspectioGraph\VertexConnectionMap $vertexConnectionMap): void
+    {
+        $metadataInstance = $vertex->metadataInstance();
+
+        if ($metadataInstance instanceof InspectioGraph\Metadata\ResolvesMetadataReference) {
+            $metadataInstance->resolveMetadataReferences($vertexConnectionMap, $this->filterName);
+        }
     }
 }
