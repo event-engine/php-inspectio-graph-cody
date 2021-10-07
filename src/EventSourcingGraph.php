@@ -45,7 +45,7 @@ final class EventSourcingGraph
         $resolveMetadataReferences = [];
 
         $identity = Vertex::fromCodyNode($node, $this->filterName, $this->metadataFactory);
-
+        $vertexConnectionMap = $this->addIdentity($identity, $vertexConnectionMap);
         $resolveMetadataReferences[] = $identity;
 
         foreach ($node->targets() as $target) {
