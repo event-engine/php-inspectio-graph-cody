@@ -10,12 +10,12 @@ declare(strict_types=1);
 
 namespace EventEngine\InspectioGraphCody;
 
-use EventEngine\InspectioGraph\DocumentType;
+use EventEngine\InspectioGraph\ExternalSystemType;
 use EventEngine\InspectioGraph\Metadata;
 
-final class Document extends Vertex implements DocumentType
+final class ExternalSystem extends Vertex implements ExternalSystemType
 {
-    protected const TYPE = self::TYPE_DOCUMENT;
+    protected const TYPE = self::TYPE_EXTERNAL_SYSTEM;
 
     /**
      * @var Metadata\Metadata|null

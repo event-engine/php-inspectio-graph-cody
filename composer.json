@@ -30,8 +30,8 @@
         }
     },
     "require": {
-        "php": "^7.3 || ^8.0",
-        "event-engine/php-inspectio-graph": "^0.3.0",
+        "php": "^7.4 || ^8.0",
+        "event-engine/php-inspectio-graph": "^0.4.0",
         "ext-json": "*"
     },
     "require-dev": {
@@ -40,11 +40,10 @@
         "phpstan/phpstan": "^0.12.33",
         "phpstan/phpstan-strict-rules": "^0.12.4",
         "phpunit/phpunit": "^9.2.6",
-        "prooph/php-cs-fixer-config": "^0.3",
-        "roave/security-advisories": "dev-master"
+        "prooph/php-cs-fixer-config": "^0.5.0",
+        "roave/security-advisories": "dev-latest"
     },
     "suggest": {
-        "open-code-modeling/php-code-generator": "To use the static factory methods of Transformator classes for Code Generator workflow configuration",
         "open-code-modeling/php-filter": "For pre-configured filters for proper class / method / property names etc."
     },
     "conflict": {

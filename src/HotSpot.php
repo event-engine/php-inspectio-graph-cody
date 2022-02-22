@@ -10,12 +10,12 @@ declare(strict_types=1);
 
 namespace EventEngine\InspectioGraphCody;
 
-use EventEngine\InspectioGraph\DocumentType;
+use EventEngine\InspectioGraph\HotSpotType;
 use EventEngine\InspectioGraph\Metadata;
 
-final class Document extends Vertex implements DocumentType
+final class HotSpot extends Vertex implements HotSpotType
 {
-    protected const TYPE = self::TYPE_DOCUMENT;
+    protected const TYPE = self::TYPE_HOT_SPOT;
 
     /**
      * @var Metadata\Metadata|null

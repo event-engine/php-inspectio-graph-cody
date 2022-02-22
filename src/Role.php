@@ -10,12 +10,12 @@ declare(strict_types=1);
 
 namespace EventEngine\InspectioGraphCody;
 
-use EventEngine\InspectioGraph\DocumentType;
 use EventEngine\InspectioGraph\Metadata;
+use EventEngine\InspectioGraph\RoleType;
 
-final class Document extends Vertex implements DocumentType
+final class Role extends Vertex implements RoleType
 {
-    protected const TYPE = self::TYPE_DOCUMENT;
+    protected const TYPE = self::TYPE_ROLE;
 
     /**
      * @var Metadata\Metadata|null

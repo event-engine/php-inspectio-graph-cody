@@ -10,12 +10,12 @@ declare(strict_types=1);
 
 namespace EventEngine\InspectioGraphCody;
 
-use EventEngine\InspectioGraph\DocumentType;
 use EventEngine\InspectioGraph\Metadata;
+use EventEngine\InspectioGraph\PolicyType;
 
-final class Document extends Vertex implements DocumentType
+final class Policy extends Vertex implements PolicyType
 {
-    protected const TYPE = self::TYPE_DOCUMENT;
+    protected const TYPE = self::TYPE_POLICY;
 
     /**
      * @var Metadata\Metadata|null

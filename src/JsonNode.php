@@ -13,6 +13,7 @@ namespace EventEngine\InspectioGraphCody;
 final class JsonNode implements Node
 {
     public const DEFAULT_DEPTH = 512;
+
     private const DEFAULT_OPTIONS = \JSON_BIGINT_AS_STRING | \JSON_THROW_ON_ERROR;
 
     /**
@@ -29,6 +30,11 @@ final class JsonNode implements Node
         }
 
         return new self($data['node']);
+    }
+
+    public static function fromArray(array $json): Node
+    {
+        return new self($json);
     }
 
     private function __construct(array $data)
