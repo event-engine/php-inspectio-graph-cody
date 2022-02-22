@@ -22,6 +22,7 @@ final class EventSourcingAnalyzer implements InspectioGraph\EventSourcingAnalyze
     use InspectioGraph\EventSourcingGraph;
 
     private VertexConnectionMap $identityConnectionMap;
+
     private EventSourcingGraph $graph;
 
     public function __construct(EventSourcingGraph $graph)
@@ -96,6 +97,11 @@ final class EventSourcingAnalyzer implements InspectioGraph\EventSourcingAnalyze
     public function hotSpotMap(): VertexConnectionMap
     {
         return $this->identityConnectionMap->filterByType(VertexType::TYPE_HOT_SPOT);
+    }
+
+    public function roleMap(): VertexConnectionMap
+    {
+        return $this->identityConnectionMap->filterByType(VertexType::TYPE_ROLE);
     }
 
     public function graph(): VertexConnectionMap

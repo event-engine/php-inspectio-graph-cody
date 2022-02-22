@@ -24,19 +24,27 @@ use PHPUnit\Framework\TestCase;
 final class EventSourcingAnalyzerTest extends TestCase
 {
     private const FILES_DIR = __DIR__ . DIRECTORY_SEPARATOR . '_files' . DIRECTORY_SEPARATOR;
+
     private const ID_FEATURE = 'stW5qRRPsQbowcqux7M2QX';
 
     private const ID_ADD_BUILDING = '9bJ5Y7yuBcfWyei7i2ZSDC';
+
     private const ID_ADD_BUILDING_AGGREGATE = 'buTwEKKNLBBo6WAERYN1Gn';
+
     private const ID_BUILDING_ADDED = 'tF2ZuZCXsdQMhRmRXydfuW';
 
     private const ID_CHECK_IN_USER = 'aKvhibi95v18MKjNjb6tL3';
+
     private const ID_CHECK_IN_USER_AGGREGATE = 'eiaS8gtsBemMReTNbeNRXj';
+
     private const ID_USER_CHECKED_IN = 'q3thtbbiWsgyRqGadCBLte';
+
     private const ID_DOUBLE_CHECKED_IN_DETECTED = '8H79vCoLa3Y2RrpVy7ZMYE';
 
     private const ID_CHECK_OUT_USER = 'aKvhibi95v18MKjNjb6tL3';
+
     private const ID_CHECK_OUT_USER_AGGREGATE = 'eiaS8gtsBemMReTNbeNRXj';
+
     private const ID_USER_CHECKED_OUT = 'q3thtbbiWsgyRqGadCBLte';
 
     /**

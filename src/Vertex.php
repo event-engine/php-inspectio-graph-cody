@@ -59,36 +59,47 @@ abstract class Vertex implements VertexType
         switch ($type) {
             case VertexType::TYPE_COMMAND:
                 $class = Command::class;
+
                 break;
             case VertexType::TYPE_AGGREGATE:
                 $class = Aggregate::class;
+
                 break;
             case VertexType::TYPE_EVENT:
                 $class = Event::class;
+
                 break;
             case VertexType::TYPE_DOCUMENT:
                 $class = Document::class;
+
                 break;
             case VertexType::TYPE_POLICY:
                 $class = Policy::class;
+
                 break;
             case VertexType::TYPE_EXTERNAL_SYSTEM:
                 $class = ExternalSystem::class;
+
                 break;
             case VertexType::TYPE_HOT_SPOT:
                 $class = HotSpot::class;
+
                 break;
             case VertexType::TYPE_ROLE:
                 $class = Role::class;
+
                 break;
             case VertexType::TYPE_UI:
                 $class = Ui::class;
+
                 break;
             case VertexType::TYPE_FEATURE:
                 $class = Feature::class;
+
                 break;
             case VertexType::TYPE_BOUNDED_CONTEXT:
                 $class = BoundedContext::class;
+
                 break;
             default:
                 throw new RuntimeException(\sprintf('Given type "%s" is not supported', $type));
